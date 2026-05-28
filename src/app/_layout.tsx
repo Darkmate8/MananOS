@@ -1,22 +1,19 @@
-// Mandatory root polyfills (CRITICAL for Vercel AI SDK streaming)
 import 'react-native-url-polyfill/auto';
+import { TextEncoder, TextDecoder } from 'text-encoding'; // eslint-disable-line @typescript-eslint/no-require-imports
+globalThis.TextEncoder = TextEncoder as typeof globalThis.TextEncoder;
+globalThis.TextDecoder = TextDecoder as typeof globalThis.TextDecoder;
 
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
-import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router';
-import { useColorScheme } from 'react-native';
+import { Stack } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 
-import { AnimatedSplashOverlay } from '@/components/animated-icon';
-import AppTabs from '@/components/app-tabs';
+import { theme } from '@/lib/theme';
 
 SplashScreen.preventAutoHideAsync();
 
-export default function TabLayout() {
-  const colorScheme = useColorScheme();
-
-  // Load custom fonts: EB Garamond (display), JetBrains Mono (data), Inter (body)
-  // Fonts must be in assets/fonts/ as TTF files (use relative paths, not aliases)
+export default function RootLayout() {
   const [fontsLoaded] = useFonts({
     EBGaramond_600: require('../../assets/fonts/EBGaramond-SemiBold.ttf'),
     Inter_400: require('../../assets/fonts/Inter_24pt-Regular.ttf'),
@@ -31,18 +28,21 @@ export default function TabLayout() {
     }
   }, [fontsLoaded]);
 
-  // Hide splash while fonts load (proceed even if fonts fail)
   useEffect(() => {
-    const hideTimeout = setTimeout(() => {
-      SplashScreen.hideAsync();
-    }, 2000);
-    return () => clearTimeout(hideTimeout);
+    const t = setTimeout(() => SplashScreen.hideAsync(), 2000);
+    return () => clearTimeout(t);
   }, []);
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <AnimatedSplashOverlay />
-      <AppTabs />
-    </ThemeProvider>
+    <>
+      <StatusBar style="light" />
+      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: theme.colors.bgCanvas } }}>
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen
+          name="(modals)"
+          options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
+        />
+      </Stack>
+    </>
   );
 }
