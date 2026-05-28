@@ -40,7 +40,7 @@ export const theme = {
     },
   },
 
-  // Typography System
+  // Typography System - 7 Authorized Styles (Constraint Rule: 03-ui-styling.md)
   fonts: {
     display: {
       fontFamily: "EBGaramond_600",
@@ -54,50 +54,55 @@ export const theme = {
     mono: {
       fontFamily: "JetBrainsMono_500",
     },
+    monoSmall: {
+      fontFamily: "JetBrainsMono_400",
+    },
   },
 
+  // Typography Styles (MUST enforce these 7 boundary styles - constraint rule 03-ui-styling.md Section 2)
   typography: {
-    displayXl: {
-      fontSize: 36,
-      lineHeight: 40,
-      fontWeight: "600",
-      fontFamily: "EBGaramond_600",
-    },
-    displayLg: {
+    // Display Headline: Main screen greetings or structural title headers
+    displayHeadline: {
       fontSize: 28,
-      lineHeight: 34,
       fontWeight: "600",
       fontFamily: "EBGaramond_600",
     },
-    heading: {
+    // Section Title: Secondary headings and structural block layouts
+    sectionTitle: {
       fontSize: 20,
-      lineHeight: 26,
       fontWeight: "600",
       fontFamily: "EBGaramond_600",
     },
-    bodyLg: {
-      fontSize: 17,
-      lineHeight: 24,
-      fontWeight: "400",
-      fontFamily: "Inter_400",
+    // Mono Data Large: Live metrics tracking and ring summary displays
+    monoDataLarge: {
+      fontSize: 24,
+      fontWeight: "500",
+      fontFamily: "JetBrainsMono_500",
     },
-    body: {
+    // Mono Data Small: Workout logging fields and small data snapshots
+    monoDataSmall: {
       fontSize: 15,
-      lineHeight: 22,
+      fontWeight: "400",
+      fontFamily: "JetBrainsMono_400",
+    },
+    // Body Core: Primary interface text, labels, and paragraph layouts
+    bodyCore: {
+      fontSize: 16,
       fontWeight: "400",
       fontFamily: "Inter_400",
     },
-    caption: {
-      fontSize: 13,
-      lineHeight: 18,
+    // Body Bold: High-emphasis row headers and button labels
+    bodyBold: {
+      fontSize: 16,
       fontWeight: "500",
       fontFamily: "Inter_500",
     },
-    monoData: {
-      fontSize: 15,
-      lineHeight: 20,
-      fontWeight: "500",
-      fontFamily: "JetBrainsMono_500",
+    // Caption Muted: Timestamps, labels, sub-headers, descriptive subtext
+    captionMuted: {
+      fontSize: 12,
+      fontWeight: "400",
+      fontFamily: "Inter_400",
+      color: "#B8B0A4", // textSecondary
     },
   },
 
