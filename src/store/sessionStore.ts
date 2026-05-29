@@ -12,6 +12,7 @@ export interface ActiveSet {
   rpe: number | null;
   isWarmup: boolean;
   restSeconds: number | null;
+  isCompleted: boolean;
 }
 
 export interface ActiveExercise {
@@ -46,6 +47,7 @@ interface SessionState {
   // Rest timer
   setRestTimer: (seconds: number) => void;
   clearRestTimer: () => void;
+  completeSet: (exerciseId: string, setId: string, restSeconds?: number) => void;
 }
 
 const emptyState = {
@@ -102,6 +104,7 @@ export const useSessionStore = create<SessionState>()(
               rpe: null,
               isWarmup: false,
               restSeconds: null,
+              isCompleted: false,
               ...partial,
             };
             return { ...e, sets: [...e.sets, newSet] };
@@ -136,6 +139,20 @@ export const useSessionStore = create<SessionState>()(
 
       setRestTimer: (seconds) => set({ restTimerSeconds: seconds }),
       clearRestTimer: () => set({ restTimerSeconds: null }),
+
+      completeSet: (exerciseId, setId, restSeconds = 90) =>
+        set((s) => ({
+          restTimerSeconds: restSeconds,
+          exercises: s.exercises.map((e) => {
+            if (e.exerciseId !== exerciseId) return e;
+            return {
+              ...e,
+              sets: e.sets.map((ws) =>
+                ws.id === setId ? { ...ws, isCompleted: true } : ws,
+              ),
+            };
+          }),
+        })),
     }),
     {
       name: 'session-store',

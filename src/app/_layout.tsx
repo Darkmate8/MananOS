@@ -1,3 +1,4 @@
+import 'react-native-get-random-values';
 import 'react-native-url-polyfill/auto';
 import { TextEncoder, TextDecoder } from 'text-encoding';
 globalThis.TextEncoder = TextEncoder as typeof globalThis.TextEncoder;

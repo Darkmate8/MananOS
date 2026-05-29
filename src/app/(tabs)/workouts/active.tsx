@@ -23,6 +23,9 @@ import * as Haptics from 'expo-haptics';
 
 import { theme } from '@/lib/theme';
 import { useSessionStore, type ActiveSet, type ActiveExercise } from '@/store/sessionStore';
+import { RestTimerOverlay } from '@/components/RestTimerOverlay';
+import { PRBanner } from '@/components/PRBanner';
+import { usePRDetection } from '@/hooks/usePRDetection';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
@@ -67,12 +70,15 @@ function PressableButton({
 function SetRow({
   set,
   exerciseId,
+  onPRCheck,
 }: {
   set: ActiveSet;
   exerciseId: string;
+  onPRCheck: (weightKg: number | null, reps: number | null) => void;
 }) {
   const updateSet = useSessionStore((s) => s.updateSet);
   const removeSet = useSessionStore((s) => s.removeSet);
+  const completeSet = useSessionStore((s) => s.completeSet);
 
   const [weightStr, setWeightStr] = useState(set.weightKg?.toString() ?? '');
   const [repsStr, setRepsStr] = useState(set.reps?.toString() ?? '');
@@ -132,6 +138,22 @@ function SetRow({
         hitSlop={8}
         onPress={() => {
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          const w = parseFloat(weightStr) || null;
+          const r = parseInt(repsStr, 10) || null;
+          completeSet(exerciseId, set.id, set.restSeconds ?? 90);
+          if (!set.isCompleted) onPRCheck(w, r);
+        }}
+        style={[styles.checkBtn, set.isCompleted && styles.checkBtnDone]}
+      >
+        <Text style={[styles.checkBtnText, set.isCompleted && styles.checkBtnTextDone]}>
+          {set.isCompleted ? '✓' : '○'}
+        </Text>
+      </Pressable>
+
+      <Pressable
+        hitSlop={8}
+        onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
           removeSet(exerciseId, set.id);
         }}
       >
@@ -141,7 +163,13 @@ function SetRow({
   );
 }
 
-function ExerciseCard({ exercise }: { exercise: ActiveExercise }) {
+function ExerciseCard({
+  exercise,
+  onPRCheck,
+}: {
+  exercise: ActiveExercise;
+  onPRCheck: (exerciseId: string, exerciseName: string, weightKg: number | null, reps: number | null) => void;
+}) {
   const addSet = useSessionStore((s) => s.addSet);
   const removeExercise = useSessionStore((s) => s.removeExercise);
 
@@ -180,7 +208,12 @@ function ExerciseCard({ exercise }: { exercise: ActiveExercise }) {
       </View>
 
       {exercise.sets.map((set) => (
-        <SetRow key={set.id} set={set} exerciseId={exercise.exerciseId} />
+        <SetRow
+          key={set.id}
+          set={set}
+          exerciseId={exercise.exerciseId}
+          onPRCheck={(w, r) => onPRCheck(exercise.exerciseId, exercise.exerciseName, w, r)}
+        />
       ))}
 
       {exercise.sets.length > 0 && totalVolume > 0 && (
@@ -211,6 +244,7 @@ export default function ActiveWorkoutScreen() {
   const startedAt = useSessionStore((s) => s.startedAt);
   const exercises = useSessionStore((s) => s.exercises);
   const discardSession = useSessionStore((s) => s.discardSession);
+  const { checkPR, activePR, dismissPR } = usePRDetection();
 
   const [elapsed, setElapsed] = useState(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -255,7 +289,8 @@ export default function ActiveWorkoutScreen() {
   if (!sessionId) return null;
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
+    <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
+      <PRBanner activePR={activePR} onDismiss={dismissPR} />
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -290,7 +325,11 @@ export default function ActiveWorkoutScreen() {
             </View>
           ) : (
             exercises.map((exercise) => (
-              <ExerciseCard key={exercise.exerciseId} exercise={exercise} />
+              <ExerciseCard
+                key={exercise.exerciseId}
+                exercise={exercise}
+                onPRCheck={checkPR}
+              />
             ))
           )}
 
@@ -301,6 +340,8 @@ export default function ActiveWorkoutScreen() {
             <Text style={styles.addExerciseBtnText}>+ Add Exercise</Text>
           </PressableButton>
         </ScrollView>
+
+        <RestTimerOverlay />
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -454,6 +495,28 @@ const styles = StyleSheet.create({
     fontFamily: theme.fonts.monoSmall.fontFamily,
     color: theme.colors.accentPrimary,
     textAlign: 'center',
+  },
+  checkBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: theme.radius.pill,
+    borderWidth: 1.5,
+    borderColor: theme.colors.borderStrong,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkBtnDone: {
+    backgroundColor: theme.colors.accentPrimary,
+    borderColor: theme.colors.accentPrimary,
+  },
+  checkBtnText: {
+    fontSize: 12,
+    fontFamily: theme.fonts.body.fontFamily,
+    color: theme.colors.textTertiary,
+  },
+  checkBtnTextDone: {
+    color: theme.colors.textPrimary,
+    fontFamily: theme.fonts.bodyBold.fontFamily,
   },
   removeSetBtn: {
     width: 24,
