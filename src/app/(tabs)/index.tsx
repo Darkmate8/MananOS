@@ -61,16 +61,22 @@ const ringStatStyles = StyleSheet.create({
     fontSize: 11,
     fontFamily: theme.fonts.body.fontFamily,
     color: theme.colors.textTertiary,
+    textAlign: 'center',
+    alignSelf: 'stretch',
   },
   value: {
     fontSize: 15,
     fontFamily: theme.fonts.mono.fontFamily,
     color: theme.colors.textPrimary,
+    textAlign: 'center',
+    alignSelf: 'stretch',
   },
   sub: {
     fontSize: 11,
     fontFamily: theme.fonts.body.fontFamily,
     color: theme.colors.textTertiary,
+    textAlign: 'center',
+    alignSelf: 'stretch',
   },
 });
 

@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import NetInfo from '@react-native-community/netinfo';
-import { v4 as uuidv4 } from 'uuid';
+import { generateId } from '@/lib/generateId';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuthStore } from '@/store/authStore';
 import { getSyncQueue, setSyncQueue } from '@/lib/mmkv';
@@ -114,7 +114,7 @@ export function useFinishWorkout() {
       } else {
         const queue = JSON.parse(getSyncQueue(userId)) as unknown[];
         queue.push({
-          id: uuidv4(),
+          id: generateId(),
           action: 'FINISH_WORKOUT',
           table: 'workout_sessions',
           payload: {

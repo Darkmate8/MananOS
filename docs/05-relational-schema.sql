@@ -261,7 +261,7 @@ create policy own_rows on steps_logs        for all using (user_id = auth.uid())
 create policy own_rows on chat_messages     for all using (user_id = auth.uid()) with check (user_id = auth.uid());
 
 -- 18. TODAY RINGS VIEW
-create or replace view v_today_rings as
+create or replace view v_today_rings with (security_invoker = true) as
 select
   auth.uid() as user_id,
   (current_date) as on_date,

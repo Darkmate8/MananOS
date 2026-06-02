@@ -3,7 +3,7 @@ import NetInfo from '@react-native-community/netinfo';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuthStore } from '@/store/authStore';
 import { storage } from '@/lib/mmkv';
-import { v4 as uuidv4 } from 'uuid';
+import { generateId } from '@/lib/generateId';
 
 const CUP_INCREMENT = 1;
 
@@ -37,7 +37,7 @@ export function useWaterQuickAdd() {
 
       const payload = existingQuery.data
         ? { id: existingQuery.data.id, user_id: userId!, logged_on: loggedOn, cups: existingQuery.data.cups + CUP_INCREMENT }
-        : { id: uuidv4(), user_id: userId!, logged_on: loggedOn, cups: CUP_INCREMENT };
+        : { id: generateId(), user_id: userId!, logged_on: loggedOn, cups: CUP_INCREMENT };
 
       if (net.isConnected) {
         const { error } = await supabase.from('water_logs').upsert(payload);

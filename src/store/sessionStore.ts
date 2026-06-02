@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import { v4 as uuidv4 } from 'uuid';
+import { generateId } from '@/lib/generateId';
 import { zustandMMKVStorage } from '@/lib/mmkv';
 
 export interface ActiveSet {
@@ -66,7 +66,7 @@ export const useSessionStore = create<SessionState>()(
 
       startSession: () =>
         set({
-          sessionId: uuidv4(),
+          sessionId: generateId(),
           startedAt: new Date().toISOString(),
           exercises: [],
           restTimerSeconds: null,
@@ -96,7 +96,7 @@ export const useSessionStore = create<SessionState>()(
             if (e.exerciseId !== exerciseId) return e;
             const setIndex = e.sets.length + 1;
             const newSet: ActiveSet = {
-              id: uuidv4(),
+              id: generateId(),
               exerciseId,
               setIndex,
               weightKg: null,

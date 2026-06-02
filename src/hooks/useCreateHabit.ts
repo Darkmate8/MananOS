@@ -51,7 +51,13 @@ export function useCreateHabit() {
     },
 
     mutationFn: async (input) => {
-      const net = await NetInfo.fetch();
+      let isConnected = true;
+      try {
+        const net = await NetInfo.fetch();
+        isConnected = net.isConnected ?? true;
+      } catch {
+        // NetInfo native module unavailable — treat as online
+      }
 
       const payload: HabitInsert = {
         id: input.id,
@@ -62,7 +68,7 @@ export function useCreateHabit() {
         target_per_day: input.target_per_day,
       };
 
-      if (net.isConnected) {
+      if (isConnected) {
         const { error } = await supabase.from('habits').insert(payload);
         if (error) throw error;
       } else {

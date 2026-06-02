@@ -17,7 +17,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
-import { v4 as uuidv4 } from 'uuid';
+import { generateId } from '@/lib/generateId';
 import { Feather } from '@expo/vector-icons';
 
 import { theme } from '@/lib/theme';
@@ -65,7 +65,7 @@ export default function CreateHabitModal() {
   const [isCountBased, setIsCountBased] = useState(false);
   const [targetCount, setTargetCount] = useState(3);
 
-  const { mutate, isPending } = useCreateHabit();
+  const { mutate, isPending, error } = useCreateHabit();
 
   function handleSave() {
     if (!name.trim()) return;
@@ -74,7 +74,7 @@ export default function CreateHabitModal() {
 
     mutate(
       {
-        id: uuidv4(),
+        id: generateId(),
         name: name.trim(),
         description: description.trim() || undefined,
         color: selectedColor,
@@ -210,6 +210,13 @@ export default function CreateHabitModal() {
                 </Pressable>
               </View>
             </>
+          )}
+
+          {/* Error */}
+          {error && (
+            <View style={styles.errorBox}>
+              <Text style={styles.errorText}>{error.message}</Text>
+            </View>
           )}
 
           {/* Save button */}
@@ -358,6 +365,18 @@ const styles = StyleSheet.create({
     color: theme.colors.textPrimary,
     minWidth: 32,
     textAlign: 'center',
+  },
+  errorBox: {
+    backgroundColor: theme.colors.bgSurface3,
+    borderRadius: theme.radius.button,
+    borderWidth: 1,
+    borderColor: theme.colors.error,
+    padding: theme.spacing.md,
+    marginTop: theme.spacing.md,
+  },
+  errorText: {
+    ...theme.typography.captionMuted,
+    color: theme.colors.error,
   },
   saveBtn: {
     backgroundColor: theme.colors.accentPrimary,

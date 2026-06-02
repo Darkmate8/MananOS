@@ -2,7 +2,7 @@ import { useCallback, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import NetInfo from '@react-native-community/netinfo';
 import * as Haptics from 'expo-haptics';
-import { v4 as uuidv4 } from 'uuid';
+import { generateId } from '@/lib/generateId';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuthStore } from '@/store/authStore';
 import { getSyncQueue, setSyncQueue } from '@/lib/mmkv';
@@ -120,7 +120,7 @@ export function usePRDetection() {
           previousValue: existing?.value ?? null,
         });
         upsertMutation.mutate({
-          id: existing?.id ?? uuidv4(),
+          id: existing?.id ?? generateId(),
           user_id: userId,
           exercise_id: exerciseId,
           pr_type: 'one_rep_max',

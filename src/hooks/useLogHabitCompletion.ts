@@ -3,7 +3,7 @@ import NetInfo from '@react-native-community/netinfo';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuthStore } from '@/store/authStore';
 import { storage } from '@/lib/mmkv';
-import { v4 as uuidv4 } from 'uuid';
+import { generateId } from '@/lib/generateId';
 import type { HabitWithToday } from './useTodayHabits';
 import type { Database } from '@/types/database.types';
 
@@ -42,12 +42,18 @@ export function useLogHabitCompletion() {
     },
 
     mutationFn: async ({ habitId, currentCount, targetPerDay }) => {
-      const net = await NetInfo.fetch();
+      let isConnected = true;
+      try {
+        const net = await NetInfo.fetch();
+        isConnected = net.isConnected ?? true;
+      } catch {
+        // NetInfo native module unavailable — treat as online
+      }
       const today = todayDate();
       const newCount = currentCount >= targetPerDay ? 0 : currentCount + 1;
 
       if (newCount === 0) {
-        if (net.isConnected) {
+        if (isConnected) {
           const { error } = await supabase
             .from('habit_completions')
             .delete()
@@ -68,7 +74,7 @@ export function useLogHabitCompletion() {
         return;
       }
 
-      if (net.isConnected) {
+      if (isConnected) {
         const existingRes = await supabase
           .from('habit_completions')
           .select('id')
@@ -77,7 +83,7 @@ export function useLogHabitCompletion() {
           .maybeSingle();
 
         const payload: HabitCompletionInsert = {
-          id: existingRes.data?.id ?? uuidv4(),
+          id: existingRes.data?.id ?? generateId(),
           user_id: userId!,
           habit_id: habitId,
           completed_on: today,
@@ -88,7 +94,7 @@ export function useLogHabitCompletion() {
         if (error) throw error;
       } else {
         const payload: HabitCompletionInsert = {
-          id: uuidv4(),
+          id: generateId(),
           user_id: userId!,
           habit_id: habitId,
           completed_on: today,
