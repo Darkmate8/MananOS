@@ -133,7 +133,7 @@ export default function NutritionHistoryScreen() {
             <View style={styles.chartPlaceholder}>
               <Text style={styles.loadingText}>Loading…</Text>
             </View>
-          ) : days.length === 0 ? (
+          ) : loggedDays === 0 ? (
             <View style={styles.chartPlaceholder}>
               <Feather name="bar-chart-2" size={32} color={theme.colors.textTertiary} />
               <Text style={styles.emptyText}>No data logged yet</Text>

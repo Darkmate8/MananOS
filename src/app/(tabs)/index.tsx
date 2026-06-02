@@ -202,6 +202,32 @@ function HabitsRow() {
   );
 }
 
+// ─── Coach Card ───────────────────────────────────────────────────────────────
+
+function CoachCard() {
+  const press = usePressFeedback();
+  return (
+    <AnimatedPressable
+      style={[styles.card, styles.coachCard, press.animatedStyle]}
+      onPressIn={press.onPressIn}
+      onPressOut={press.onPressOut}
+      onPress={() => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        router.push('/(tabs)/today/coach');
+      }}
+    >
+      <View style={styles.workoutCardRow}>
+        <Ionicons name="sparkles-outline" size={20} color={theme.colors.accentPrimary} />
+        <View style={{ flex: 1 }}>
+          <Text style={styles.cardLabel}>AI Coach</Text>
+          <Text style={styles.cardCta}>Ask about workouts, nutrition & habits →</Text>
+        </View>
+        <Ionicons name="chevron-forward" size={16} color={theme.colors.textTertiary} />
+      </View>
+    </AnimatedPressable>
+  );
+}
+
 // ─── Weight Metrics Prompt ────────────────────────────────────────────────────
 
 function MetricsPrompt({ lastWeightLogDate }: { lastWeightLogDate: string | null }) {
@@ -268,8 +294,19 @@ export default function TodayScreen() {
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.dateMeta}>{dateLabel()}</Text>
-          <Text style={styles.title}>Today</Text>
+          <View style={styles.headerRow}>
+            <View>
+              <Text style={styles.dateMeta}>{dateLabel()}</Text>
+              <Text style={styles.title}>Today</Text>
+            </View>
+            <Pressable
+              onPress={() => router.push('/(modals)/settings')}
+              hitSlop={12}
+              style={styles.settingsBtn}
+            >
+              <Ionicons name="settings-outline" size={22} color={theme.colors.textSecondary} />
+            </Pressable>
+          </View>
         </View>
 
         {/* Activity Rings */}
@@ -323,6 +360,9 @@ export default function TodayScreen() {
             </TouchableOpacity>
           </View>
           <HabitsRow />
+
+          {/* AI Coach Entry */}
+          <CoachCard />
         </View>
       </ScrollView>
 
@@ -345,8 +385,16 @@ const styles = StyleSheet.create({
   header: {
     paddingHorizontal: theme.spacing.xxl,
     paddingTop: theme.spacing.xl,
-    gap: theme.spacing.xs,
     marginBottom: theme.spacing.xxl,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+  },
+  settingsBtn: {
+    marginTop: theme.spacing.xs,
+    padding: theme.spacing.xs,
   },
   dateMeta: {
     fontSize: 12,
@@ -406,6 +454,11 @@ const styles = StyleSheet.create({
   },
   workoutCardEmpty: {
     borderColor: theme.colors.borderStrong,
+  },
+  coachCard: {
+    borderColor: theme.colors.accentPrimary,
+    borderWidth: 1,
+    backgroundColor: theme.colors.accentPrimaryMuted,
   },
   workoutCardRow: {
     flexDirection: 'row',

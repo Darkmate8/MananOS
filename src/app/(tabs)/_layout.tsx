@@ -21,13 +21,19 @@ const TAB_DEFS = [
 function CustomTabBar({ state, navigation }: TabBarProps) {
   const insets = useSafeAreaInsets();
 
+  // Only render routes that are actual tabs (exclude nested stacks like today/)
+  const activeRouteName = state.routes[state.index]?.name;
+  const visibleRoutes = state.routes.filter((r: { key: string; name: string }) =>
+    TAB_DEFS.some((t) => t.name === r.name),
+  );
+
   return (
     <View style={[styles.container, { paddingBottom: insets.bottom }]}>
       <View style={styles.topBorder} />
       <View style={styles.row}>
-        {state.routes.map((route: { key: string; name: string }, index: number) => {
-          const tab = TAB_DEFS[index] ?? TAB_DEFS[0];
-          const focused = state.index === index;
+        {visibleRoutes.map((route: { key: string; name: string }) => {
+          const tab = TAB_DEFS.find((t) => t.name === route.name)!;
+          const focused = activeRouteName === route.name;
           const color = focused ? theme.colors.textPrimary : theme.colors.textTertiary;
 
           return (
@@ -42,7 +48,7 @@ function CustomTabBar({ state, navigation }: TabBarProps) {
               {focused && <View style={styles.activeDot} />}
               {!focused && <View style={styles.dotSpacer} />}
               <Feather name={tab.icon} size={22} color={color} />
-              <Text style={[styles.label, { color }]}>{tab.label}</Text>
+              <Text style={[styles.label, { color }]} numberOfLines={1}>{tab.label}</Text>
             </TouchableOpacity>
           );
         })}
@@ -81,8 +87,9 @@ const styles = StyleSheet.create({
     height: 4,
   },
   label: {
-    fontSize: 11,
+    fontSize: 10,
     fontFamily: theme.fonts.body.fontFamily,
+    includeFontPadding: false,
   },
 });
 
@@ -96,6 +103,8 @@ export default function TabLayout() {
       <Tabs.Screen name="workouts" />
       <Tabs.Screen name="nutrition" />
       <Tabs.Screen name="habits" />
+      {/* today/ is a nested stack (coach screen), not a tab */}
+      <Tabs.Screen name="today" options={{ href: null }} />
     </Tabs>
   );
 }

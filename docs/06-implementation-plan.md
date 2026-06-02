@@ -57,12 +57,15 @@
 
 ## PHASE 4: DUAL AI COACH PIPELINES
 **Exit Condition:** Client-side Vercel AI SDK streams chat and parses meal JSON.
+**Provider:** Gemini (primary). Package: `ai` + `@ai-sdk/google`. Key read from `expo-secure-store` key `api_key_gemini`. No OpenAI dependency.
 
-* **4.1 API Keystore:** Build `settings` modal. Input fields for OpenAI/Gemini keys. Persist strictly to `expo-secure-store`.
-* **4.2 Coach 1 (Chat):** Build `today/coach.tsx`. 
+* **4.1 API Keystore:** Build `settings` modal. Input fields for Gemini (primary) and OpenAI (optional fallback) keys. Persist strictly to `expo-secure-store`. ✅ DONE
+* **4.2 Coach 1 (Chat):** Build `today/coach.tsx`.
+  * *Provider:* `createGoogleGenerativeAI` from `@ai-sdk/google`, model `gemini-2.0-flash`.
   * *Data Prep:* Fetch context JSON from Postgres (Doc 05 §6).
-  * *Execution:* Pass context to Vercel AI SDK `streamText`. Stream response locally.
+  * *Execution:* Pass context as system prompt to Vercel AI SDK `streamText`. Stream response locally on-device.
 * **4.3 Coach 2 (Parser):** Connect Feature 3.2 input to `generateObject`.
+  * *Provider:* Same Gemini key, model `gemini-2.0-flash`.
   * *Constraint:* Force JSON schema validation using Zod. If confidence is `<70%` or `low`, block DB write and render clarifying question in UI.
 
 ---
