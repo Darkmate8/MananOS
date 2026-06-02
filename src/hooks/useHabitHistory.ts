@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuthStore } from '@/store/authStore';
+import { rollingWindowStart } from '@/lib/habitUtils';
 import type { Database } from '@/types/database.types';
 
 export type HabitRow = Database['public']['Tables']['habits']['Row'];
@@ -11,9 +12,7 @@ export interface HabitHistoryData {
 }
 
 async function fetchHabitHistory(habitId: string, userId: string): Promise<HabitHistoryData> {
-  const cutoff = new Date();
-  cutoff.setDate(cutoff.getDate() - 364);
-  const cutoffStr = cutoff.toISOString().split('T')[0];
+  const cutoffStr = rollingWindowStart();
 
   const [habitRes, completionsRes] = await Promise.all([
     supabase.from('habits').select('*').eq('id', habitId).eq('user_id', userId).single(),

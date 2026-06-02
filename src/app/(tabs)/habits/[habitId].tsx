@@ -7,7 +7,7 @@ import * as Haptics from 'expo-haptics';
 import { Feather } from '@expo/vector-icons';
 
 import { theme } from '@/lib/theme';
-import { calcStreak, calcTotal } from '@/lib/habitUtils';
+import { calcStreak, calcTotal, todayDateStr } from '@/lib/habitUtils';
 import { useHabitHistory, type HabitHistoryData } from '@/hooks/useHabitHistory';
 import { useLogHabitCompletion } from '@/hooks/useLogHabitCompletion';
 import { useAuthStore } from '@/store/authStore';
@@ -21,7 +21,7 @@ export default function HabitDetailScreen() {
   const { data, isLoading } = useHabitHistory(habitId);
   const { mutate: logCompletion } = useLogHabitCompletion();
 
-  const todayStr = useMemo(() => new Date().toISOString().split('T')[0], []);
+  const todayStr = useMemo(() => todayDateStr(), []);
   const habit = data?.habit;
   const completionsMap = data?.completionsMap ?? {};
 

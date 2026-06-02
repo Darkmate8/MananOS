@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuthStore } from '@/store/authStore';
+import { todayDateStr } from '@/lib/habitUtils';
 import type { Database } from '@/types/database.types';
 
 export type HabitRow = Database['public']['Tables']['habits']['Row'];
@@ -10,12 +11,8 @@ export interface HabitWithToday extends HabitRow {
   today_count: number;
 }
 
-function todayDate(): string {
-  return new Date().toISOString().split('T')[0];
-}
-
 async function fetchTodayHabits(userId: string): Promise<HabitWithToday[]> {
-  const today = todayDate();
+  const today = todayDateStr();
 
   const [habitsResult, completionsResult] = await Promise.all([
     supabase

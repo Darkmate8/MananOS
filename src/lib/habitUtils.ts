@@ -1,5 +1,15 @@
 import { theme } from './theme';
 
+export function todayDateStr(): string {
+  return new Date().toISOString().split('T')[0];
+}
+
+export function rollingWindowStart(days = 365): string {
+  const d = new Date();
+  d.setDate(d.getDate() - (days - 1));
+  return d.toISOString().split('T')[0];
+}
+
 export const CELL_SIZE = 11;
 export const CELL_GAP = 2;
 export const CELL_STEP = CELL_SIZE + CELL_GAP;

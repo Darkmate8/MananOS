@@ -1,12 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuthStore } from '@/store/authStore';
+import { rollingWindowStart } from '@/lib/habitUtils';
 
-// Returns completions grouped by habitId → dateStr → count (365-day window)
 async function fetchAllCompletions(userId: string): Promise<Record<string, Record<string, number>>> {
-  const cutoff = new Date();
-  cutoff.setDate(cutoff.getDate() - 364);
-  const cutoffStr = cutoff.toISOString().split('T')[0];
+  const cutoffStr = rollingWindowStart();
 
   const { data, error } = await supabase
     .from('habit_completions')

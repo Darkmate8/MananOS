@@ -75,24 +75,11 @@ export function HabitContributionGrid({
                     ? 'transparent'
                     : intensityColor(count, targetPerDay);
 
-                  if (isToday && onTodayTap) {
-                    return (
-                      <Pressable
-                        key={colIndex}
-                        onPress={onTodayTap}
-                        style={[styles.cell, { backgroundColor: bgColor }, styles.cellToday]}
-                      />
-                    );
-                  }
-
                   return (
-                    <View
+                    <Pressable
                       key={colIndex}
-                      style={[
-                        styles.cell,
-                        { backgroundColor: bgColor },
-                        isToday && styles.cellToday,
-                      ]}
+                      onPress={isToday ? onTodayTap : undefined}
+                      style={[styles.cell, { backgroundColor: bgColor }, isToday && styles.cellToday]}
                     />
                   );
                 })}
@@ -105,7 +92,7 @@ export function HabitContributionGrid({
       {/* Footer: hint + legend */}
       {(showLegend || showHint) && (
         <View style={styles.footer}>
-          <Text style={styles.hintText}>{showHint ? 'Tap a cell to log' : ''}</Text>
+          {showHint && <Text style={styles.hintText}>Tap a cell to log</Text>}
           {showLegend && (
             <View style={styles.legend}>
               <Text style={styles.legendText}>Less</Text>

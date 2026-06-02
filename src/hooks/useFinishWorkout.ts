@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import NetInfo from '@react-native-community/netinfo';
 import { generateId } from '@/lib/generateId';
+import { getIsConnected } from '@/lib/netUtils';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuthStore } from '@/store/authStore';
 import { getSyncQueue, setSyncQueue } from '@/lib/mmkv';
@@ -95,8 +95,8 @@ export function useFinishWorkout() {
       const endedAt = new Date().toISOString();
       const sets = buildSets(payload, userId);
 
-      const state = await NetInfo.fetch();
-      if (state.isConnected) {
+      const isConnected = await getIsConnected();
+      if (isConnected) {
         const { error: sessionError } = await supabase
           .from('workout_sessions')
           .upsert({

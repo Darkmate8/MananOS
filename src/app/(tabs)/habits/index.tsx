@@ -8,10 +8,9 @@ import { Feather, Ionicons } from '@expo/vector-icons';
 import { useQueryClient } from '@tanstack/react-query';
 
 import { theme } from '@/lib/theme';
-import { calcStreak, calcTotal } from '@/lib/habitUtils';
+import { calcStreak, calcTotal, todayDateStr } from '@/lib/habitUtils';
 import { useTodayHabits, type HabitWithToday } from '@/hooks/useTodayHabits';
 import { useLogHabitCompletion } from '@/hooks/useLogHabitCompletion';
-import { useHabitHistory, type HabitHistoryData } from '@/hooks/useHabitHistory';
 import { useAllHabitsCompletions } from '@/hooks/useAllHabitsCompletions';
 import { useAuthStore } from '@/store/authStore';
 import { HabitContributionGrid } from '@/components/HabitContributionGrid';
@@ -23,10 +22,6 @@ function getDateLabel(): string {
   const days = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
   const months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
   return `${days[now.getDay()]} · ${months[now.getMonth()]} ${now.getDate()}`;
-}
-
-function todayDate(): string {
-  return new Date().toISOString().split('T')[0];
 }
 
 // ─── Habit List Row ────────────────────────────────────────────────────────────
@@ -172,19 +167,27 @@ function FeaturedCard({
 export default function HabitsScreen() {
   const userId = useAuthStore((s) => s.userId);
   const queryClient = useQueryClient();
-  const todayStr = todayDate();
+  const todayStr = useMemo(() => todayDateStr(), []);
 
   const { data: habits, isLoading } = useTodayHabits();
   const { mutate: logCompletion } = useLogHabitCompletion();
   const { data: allCompletions } = useAllHabitsCompletions();
 
   const featuredHabit = habits?.[0];
-  const { data: featuredHistory } = useHabitHistory(featuredHabit?.id ?? '');
 
   const doneCount = useMemo(
     () => (habits ?? []).filter((h) => h.today_count >= h.target_per_day).length,
     [habits],
   );
+
+  const streaksMap = useMemo(() => {
+    if (!habits || !allCompletions) return {} as Record<string, number>;
+    const map: Record<string, number> = {};
+    for (const h of habits) {
+      map[h.id] = calcStreak(allCompletions[h.id] ?? {}, h.target_per_day);
+    }
+    return map;
+  }, [habits, allCompletions]);
 
   const handleCheck = useCallback(
     (habit: HabitWithToday) => {
@@ -204,23 +207,22 @@ export default function HabitsScreen() {
     const currentCount = featuredHabit.today_count;
     const newCount = currentCount >= featuredHabit.target_per_day ? 0 : currentCount + 1;
 
-    // Optimistic update on the history cache so the grid dot reflects immediately
-    queryClient.setQueryData<HabitHistoryData>(
-      ['habit_history', featuredHabit.id, userId],
+    // Optimistic update on the bulk-completions cache so the grid dot reflects immediately
+    queryClient.setQueryData<Record<string, Record<string, number>>>(
+      ['all_habits_completions', userId],
       (old) =>
         old
-          ? { ...old, completionsMap: { ...old.completionsMap, [todayStr]: newCount } }
+          ? {
+              ...old,
+              [featuredHabit.id]: { ...(old[featuredHabit.id] ?? {}), [todayStr]: newCount },
+            }
           : old,
     );
 
     logCompletion(
       { habitId: featuredHabit.id, currentCount, targetPerDay: featuredHabit.target_per_day },
       {
-        onError: () => {
-          queryClient.invalidateQueries({ queryKey: ['habit_history', featuredHabit.id, userId] });
-        },
         onSettled: () => {
-          queryClient.invalidateQueries({ queryKey: ['habit_history', featuredHabit.id, userId] });
           queryClient.invalidateQueries({ queryKey: ['all_habits_completions', userId] });
         },
       },
@@ -257,7 +259,7 @@ export default function HabitsScreen() {
           <View style={styles.section}>
             <FeaturedCard
               habit={featuredHabit}
-              completionsMap={featuredHistory?.completionsMap ?? {}}
+              completionsMap={allCompletions?.[featuredHabit.id] ?? {}}
               onTodayTap={handleFeaturedTap}
             />
           </View>
@@ -275,19 +277,15 @@ export default function HabitsScreen() {
               </View>
 
               <View style={styles.listContainer}>
-                {habits.map((habit, index) => {
-                  const habitCompletions = allCompletions?.[habit.id] ?? {};
-                  const streak = calcStreak(habitCompletions, habit.target_per_day);
-                  return (
-                    <HabitListRow
-                      key={habit.id}
-                      habit={habit}
-                      streak={streak}
-                      isLast={index === habits.length - 1}
-                      onCheck={() => handleCheck(habit)}
-                    />
-                  );
-                })}
+                {habits.map((habit, index) => (
+                  <HabitListRow
+                    key={habit.id}
+                    habit={habit}
+                    streak={streaksMap[habit.id] ?? 0}
+                    isLast={index === habits.length - 1}
+                    onCheck={() => handleCheck(habit)}
+                  />
+                ))}
               </View>
             </>
           ) : !isLoading ? (

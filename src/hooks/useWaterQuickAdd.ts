@@ -1,15 +1,12 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import NetInfo from '@react-native-community/netinfo';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuthStore } from '@/store/authStore';
 import { storage } from '@/lib/mmkv';
 import { generateId } from '@/lib/generateId';
+import { todayDateStr } from '@/lib/habitUtils';
+import { getIsConnected } from '@/lib/netUtils';
 
 const CUP_INCREMENT = 1;
-
-function todayDate(): string {
-  return new Date().toISOString().split('T')[0];
-}
 
 export function useWaterQuickAdd() {
   const userId = useAuthStore((s) => s.userId);
@@ -26,8 +23,8 @@ export function useWaterQuickAdd() {
     },
 
     mutationFn: async () => {
-      const net = await NetInfo.fetch();
-      const loggedOn = todayDate();
+      const isConnected = await getIsConnected();
+      const loggedOn = todayDateStr();
       const existingQuery = await supabase
         .from('water_logs')
         .select('id, cups')
@@ -39,7 +36,7 @@ export function useWaterQuickAdd() {
         ? { id: existingQuery.data.id, user_id: userId!, logged_on: loggedOn, cups: existingQuery.data.cups + CUP_INCREMENT }
         : { id: generateId(), user_id: userId!, logged_on: loggedOn, cups: CUP_INCREMENT };
 
-      if (net.isConnected) {
+      if (isConnected) {
         const { error } = await supabase.from('water_logs').upsert(payload);
         if (error) throw error;
       } else {

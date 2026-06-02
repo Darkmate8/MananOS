@@ -1,9 +1,10 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import NetInfo from '@react-native-community/netinfo';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuthStore } from '@/store/authStore';
 import { storage } from '@/lib/mmkv';
 import { generateId } from '@/lib/generateId';
+import { todayDateStr } from '@/lib/habitUtils';
+import { getIsConnected } from '@/lib/netUtils';
 import type { HabitWithToday } from './useTodayHabits';
 import type { Database } from '@/types/database.types';
 
@@ -17,10 +18,6 @@ export interface LogHabitParams {
 
 interface LogHabitContext {
   prev: HabitWithToday[] | undefined;
-}
-
-function todayDate(): string {
-  return new Date().toISOString().split('T')[0];
 }
 
 export function useLogHabitCompletion() {
@@ -42,14 +39,8 @@ export function useLogHabitCompletion() {
     },
 
     mutationFn: async ({ habitId, currentCount, targetPerDay }) => {
-      let isConnected = true;
-      try {
-        const net = await NetInfo.fetch();
-        isConnected = net.isConnected ?? true;
-      } catch {
-        // NetInfo native module unavailable — treat as online
-      }
-      const today = todayDate();
+      const isConnected = await getIsConnected();
+      const today = todayDateStr();
       const newCount = currentCount >= targetPerDay ? 0 : currentCount + 1;
 
       if (newCount === 0) {
@@ -75,22 +66,17 @@ export function useLogHabitCompletion() {
       }
 
       if (isConnected) {
-        const existingRes = await supabase
-          .from('habit_completions')
-          .select('id')
-          .eq('habit_id', habitId)
-          .eq('completed_on', today)
-          .maybeSingle();
-
         const payload: HabitCompletionInsert = {
-          id: existingRes.data?.id ?? generateId(),
+          id: generateId(),
           user_id: userId!,
           habit_id: habitId,
           completed_on: today,
           count: newCount,
         };
 
-        const { error } = await supabase.from('habit_completions').upsert(payload);
+        const { error } = await supabase
+          .from('habit_completions')
+          .upsert(payload, { onConflict: 'habit_id,completed_on' });
         if (error) throw error;
       } else {
         const payload: HabitCompletionInsert = {

@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import NetInfo from '@react-native-community/netinfo';
 import { supabase } from '@/lib/supabaseClient';
+import { getIsConnected } from '@/lib/netUtils';
 import { useAuthStore } from '@/store/authStore';
 import { storage } from '@/lib/mmkv';
 import type { HabitWithToday } from './useTodayHabits';
@@ -51,13 +51,7 @@ export function useCreateHabit() {
     },
 
     mutationFn: async (input) => {
-      let isConnected = true;
-      try {
-        const net = await NetInfo.fetch();
-        isConnected = net.isConnected ?? true;
-      } catch {
-        // NetInfo native module unavailable — treat as online
-      }
+      const isConnected = await getIsConnected();
 
       const payload: HabitInsert = {
         id: input.id,
