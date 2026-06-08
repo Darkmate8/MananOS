@@ -82,6 +82,10 @@ function SetRow({
 
   const [weightStr, setWeightStr] = useState(set.weightKg?.toString() ?? '');
   const [repsStr, setRepsStr] = useState(set.reps?.toString() ?? '');
+  const checkScale = useSharedValue(1);
+  const checkAnimStyle = useAnimatedStyle(() => ({ transform: [{ scale: checkScale.value }] }));
+  const removeScale = useSharedValue(1);
+  const removeAnimStyle = useAnimatedStyle(() => ({ transform: [{ scale: removeScale.value }] }));
 
   const commitWeight = useCallback(() => {
     const val = parseFloat(weightStr);
@@ -134,8 +138,10 @@ function SetRow({
 
       <Text style={styles.setVolume}>{computeVolume(weightKg, reps)}</Text>
 
-      <Pressable
+      <AnimatedPressable
         hitSlop={8}
+        onPressIn={() => { checkScale.value = withTiming(0.97, { duration: theme.animation.press }); }}
+        onPressOut={() => { checkScale.value = withTiming(1, { duration: theme.animation.press }); }}
         onPress={() => {
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
           const w = parseFloat(weightStr) || null;
@@ -143,22 +149,25 @@ function SetRow({
           completeSet(exerciseId, set.id, set.restSeconds ?? 90);
           if (!set.isCompleted) onPRCheck(w, r);
         }}
-        style={[styles.checkBtn, set.isCompleted && styles.checkBtnDone]}
+        style={[styles.checkBtn, set.isCompleted && styles.checkBtnDone, checkAnimStyle]}
       >
         <Text style={[styles.checkBtnText, set.isCompleted && styles.checkBtnTextDone]}>
           {set.isCompleted ? '✓' : '○'}
         </Text>
-      </Pressable>
+      </AnimatedPressable>
 
-      <Pressable
+      <AnimatedPressable
         hitSlop={8}
+        onPressIn={() => { removeScale.value = withTiming(0.97, { duration: theme.animation.press }); }}
+        onPressOut={() => { removeScale.value = withTiming(1, { duration: theme.animation.press }); }}
         onPress={() => {
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
           removeSet(exerciseId, set.id);
         }}
+        style={removeAnimStyle}
       >
         <Text style={styles.removeSetBtn}>✕</Text>
-      </Pressable>
+      </AnimatedPressable>
     </View>
   );
 }
@@ -172,6 +181,8 @@ function ExerciseCard({
 }) {
   const addSet = useSessionStore((s) => s.addSet);
   const removeExercise = useSessionStore((s) => s.removeExercise);
+  const removeExScale = useSharedValue(1);
+  const removeExAnimStyle = useAnimatedStyle(() => ({ transform: [{ scale: removeExScale.value }] }));
 
   const totalVolume = exercise.sets.reduce(
     (sum, s) => sum + (s.weightKg ?? 0) * (s.reps ?? 0),
@@ -182,8 +193,10 @@ function ExerciseCard({
     <View style={styles.exerciseCard}>
       <View style={styles.exerciseHeader}>
         <Text style={styles.exerciseName}>{exercise.exerciseName}</Text>
-        <Pressable
+        <AnimatedPressable
           hitSlop={8}
+          onPressIn={() => { removeExScale.value = withTiming(0.97, { duration: theme.animation.press }); }}
+          onPressOut={() => { removeExScale.value = withTiming(1, { duration: theme.animation.press }); }}
           onPress={() => {
             Alert.alert('Remove Exercise', `Remove ${exercise.exerciseName}?`, [
               { text: 'Cancel', style: 'cancel' },
@@ -194,9 +207,10 @@ function ExerciseCard({
               },
             ]);
           }}
+          style={removeExAnimStyle}
         >
           <Text style={styles.removeExerciseBtn}>Remove</Text>
-        </Pressable>
+        </AnimatedPressable>
       </View>
 
       <View style={styles.setHeader}>
@@ -298,9 +312,9 @@ export default function ActiveWorkoutScreen() {
       >
         {/* ── Session Header ── */}
         <View style={styles.header}>
-          <Pressable hitSlop={8} onPress={handleDiscard}>
+          <PressableButton onPress={handleDiscard} style={{ paddingHorizontal: theme.spacing.xs }}>
             <Text style={styles.headerDiscard}>Discard</Text>
-          </Pressable>
+          </PressableButton>
 
           <View style={styles.headerCenter}>
             <Text style={styles.elapsedTimer}>{formatElapsed(elapsed)}</Text>

@@ -10,6 +10,7 @@ export default function ModalsLayout() {
         presentation: 'modal',
         contentStyle: { backgroundColor: theme.colors.bgSurface2 },
         animation: 'slide_from_bottom',
+        animationDuration: theme.animation.modal,
       }}
     >
       <Stack.Screen name="exercise-search" />

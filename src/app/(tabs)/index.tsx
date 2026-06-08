@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, ScrollView, Pressable, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
@@ -85,6 +85,7 @@ const ringStatStyles = StyleSheet.create({
 function WorkoutCard() {
   const { data: session, isLoading } = useTodayWorkout();
   const press = usePressFeedback();
+  const completedPress = usePressFeedback();
 
   if (isLoading) return <View style={styles.card} />;
 
@@ -112,7 +113,12 @@ function WorkoutCard() {
     : null;
 
   return (
-    <Pressable style={styles.card} onPress={() => router.push('/(tabs)/workouts')}>
+    <AnimatedPressable
+      style={[styles.card, completedPress.animatedStyle]}
+      onPressIn={completedPress.onPressIn}
+      onPressOut={completedPress.onPressOut}
+      onPress={() => router.push('/(tabs)/workouts')}
+    >
       <View style={styles.cardHeader}>
         <Text style={styles.cardSectionTitle}>{session.title ?? 'Workout'}</Text>
         {session.prCount > 0 && (
@@ -127,7 +133,7 @@ function WorkoutCard() {
         <StatChip label="Sets" value={String(session.setCount)} />
         {durationMin !== null && <StatChip label="Duration" value={`${durationMin}m`} />}
       </View>
-    </Pressable>
+    </AnimatedPressable>
   );
 }
 
@@ -162,42 +168,55 @@ function ProteinBar({ current, goal }: { current: number; goal: number }) {
 
 // ─── Habits Row ───────────────────────────────────────────────────────────────
 
+type TodayHabit = ReturnType<typeof useTodayHabits>['data'] extends (infer T)[] | undefined ? T : never;
+
+function HabitTile({ h }: { h: TodayHabit }) {
+  const press = usePressFeedback();
+  const isDone = h.today_count >= h.target_per_day;
+  return (
+    <AnimatedPressable
+      style={[styles.habitTile, isDone && styles.habitTileDone, press.animatedStyle]}
+      onPressIn={press.onPressIn}
+      onPressOut={press.onPressOut}
+      onPress={() => router.push(`/(tabs)/habits/${h.id}`)}
+    >
+      <View style={[styles.habitDot, { backgroundColor: h.color }]} />
+      <Text style={[styles.habitName, isDone && styles.habitNameDone]} numberOfLines={2}>
+        {h.name}
+      </Text>
+      {h.target_per_day > 1 && (
+        <Text style={styles.habitCount}>
+          {h.today_count}/{h.target_per_day}
+        </Text>
+      )}
+    </AnimatedPressable>
+  );
+}
+
+function HabitsRowEmpty() {
+  const press = usePressFeedback();
+  return (
+    <AnimatedPressable
+      style={[styles.card, { alignItems: 'center', paddingVertical: theme.spacing.xl }, press.animatedStyle]}
+      onPressIn={press.onPressIn}
+      onPressOut={press.onPressOut}
+      onPress={() => router.push('/(tabs)/habits')}
+    >
+      <Text style={styles.cardLabel}>No habits yet — tap to add</Text>
+    </AnimatedPressable>
+  );
+}
+
 function HabitsRow() {
   const { data: habits } = useTodayHabits();
 
   if (!habits || habits.length === 0) {
-    return (
-      <Pressable
-        style={[styles.card, { alignItems: 'center', paddingVertical: theme.spacing.xl }]}
-        onPress={() => router.push('/(tabs)/habits')}
-      >
-        <Text style={styles.cardLabel}>No habits yet — tap to add</Text>
-      </Pressable>
-    );
+    return <HabitsRowEmpty />;
   }
 
   return (
     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.habitsScroll}>
-      {habits.map((h) => {
-        const isDone = h.today_count >= h.target_per_day;
-        return (
-          <Pressable
-            key={h.id}
-            style={[styles.habitTile, isDone && styles.habitTileDone]}
-            onPress={() => router.push(`/(tabs)/habits/${h.id}`)}
-          >
-            <View style={[styles.habitDot, { backgroundColor: h.color }]} />
-            <Text style={[styles.habitName, isDone && styles.habitNameDone]} numberOfLines={2}>
-              {h.name}
-            </Text>
-            {h.target_per_day > 1 && (
-              <Text style={styles.habitCount}>
-                {h.today_count}/{h.target_per_day}
-              </Text>
-            )}
-          </Pressable>
-        );
-      })}
+      {habits.map((h) => <HabitTile key={h.id} h={h} />)}
     </ScrollView>
   );
 }
@@ -231,6 +250,7 @@ function CoachCard() {
 // ─── Weight Metrics Prompt ────────────────────────────────────────────────────
 
 function MetricsPrompt({ lastWeightLogDate }: { lastWeightLogDate: string | null }) {
+  const press = usePressFeedback();
   if (!lastWeightLogDate) return null;
   const daysSince = Math.floor(
     (Date.now() - new Date(lastWeightLogDate).getTime()) / (1000 * 60 * 60 * 24),
@@ -238,12 +258,17 @@ function MetricsPrompt({ lastWeightLogDate }: { lastWeightLogDate: string | null
   if (daysSince <= 7) return null;
 
   return (
-    <Pressable style={styles.metricsAlert} onPress={() => router.push('/(modals)/settings')}>
+    <AnimatedPressable
+      style={[styles.metricsAlert, press.animatedStyle]}
+      onPressIn={press.onPressIn}
+      onPressOut={press.onPressOut}
+      onPress={() => router.push('/(modals)/settings')}
+    >
       <Ionicons name="alert-circle-outline" size={16} color={theme.colors.warning} />
       <Text style={styles.metricsAlertText}>
         No weight logged in {daysSince} days. Tap to log.
       </Text>
-    </Pressable>
+    </AnimatedPressable>
   );
 }
 
@@ -274,6 +299,8 @@ export default function TodayScreen() {
   const { rings, profile } = useTodayRings();
   const ringsData = rings.data;
   const profileData = profile.data;
+  const settingsPress = usePressFeedback();
+  const seeAllPress = usePressFeedback();
 
   const kcalGoal = profileData?.kcal_goal ?? 2200;
   const proteinGoal = profileData?.protein_goal_g ?? 150;
@@ -299,13 +326,15 @@ export default function TodayScreen() {
               <Text style={styles.dateMeta}>{dateLabel()}</Text>
               <Text style={styles.title}>Today</Text>
             </View>
-            <Pressable
+            <AnimatedPressable
+              onPressIn={settingsPress.onPressIn}
+              onPressOut={settingsPress.onPressOut}
               onPress={() => router.push('/(modals)/settings')}
               hitSlop={12}
-              style={styles.settingsBtn}
+              style={[styles.settingsBtn, settingsPress.animatedStyle]}
             >
               <Ionicons name="settings-outline" size={22} color={theme.colors.textSecondary} />
-            </Pressable>
+            </AnimatedPressable>
           </View>
         </View>
 
@@ -355,9 +384,14 @@ export default function TodayScreen() {
           {/* Habits Row */}
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Habits</Text>
-            <TouchableOpacity onPress={() => router.push('/(tabs)/habits')}>
+            <AnimatedPressable
+              onPressIn={seeAllPress.onPressIn}
+              onPressOut={seeAllPress.onPressOut}
+              onPress={() => router.push('/(tabs)/habits')}
+              style={seeAllPress.animatedStyle}
+            >
               <Text style={styles.seeAll}>See all</Text>
-            </TouchableOpacity>
+            </AnimatedPressable>
           </View>
           <HabitsRow />
 

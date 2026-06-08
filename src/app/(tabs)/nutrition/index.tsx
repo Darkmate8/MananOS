@@ -121,6 +121,8 @@ function MealItemRow({
 }) {
   const scale = useSharedValue(1);
   const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+  const deleteScale = useSharedValue(1);
+  const deleteAnimStyle = useAnimatedStyle(() => ({ transform: [{ scale: deleteScale.value }] }));
 
   function handleDeletePress() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -162,13 +164,15 @@ function MealItemRow({
         <Text style={styles.itemKcal}>{Math.round(item.kcal)}</Text>
         <Text style={styles.itemKcalUnit}>kcal</Text>
       </View>
-      <Pressable
-        style={styles.deleteBtn}
+      <AnimatedPressable
+        style={[styles.deleteBtn, deleteAnimStyle]}
+        onPressIn={() => { deleteScale.value = withTiming(0.97, { duration: theme.animation.press }); }}
+        onPressOut={() => { deleteScale.value = withTiming(1, { duration: theme.animation.press }); }}
         onPress={handleDeletePress}
         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
       >
         <Feather name="trash-2" size={14} color={theme.colors.textTertiary} />
-      </Pressable>
+      </AnimatedPressable>
     </AnimatedPressable>
   );
 }
@@ -225,6 +229,39 @@ function EmptyState() {
 // ─── Coach 2 Input Section ─────────────────────────────────────────────────────
 
 const MEAL_TYPE_OPTIONS: MealType[] = ['breakfast', 'lunch', 'dinner', 'snack'];
+
+function MealTypeChip({ type, selected, onPress }: { type: MealType; selected: boolean; onPress: () => void }) {
+  const press = useSharedValue(1);
+  const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: press.value }] }));
+  return (
+    <AnimatedPressable
+      style={[styles.mealTypeChip, selected && styles.mealTypeChipActive, animStyle]}
+      onPressIn={() => { press.value = withTiming(0.97, { duration: theme.animation.press }); }}
+      onPressOut={() => { press.value = withTiming(1, { duration: theme.animation.press }); }}
+      onPress={onPress}
+    >
+      <Text style={[styles.mealTypeChipText, selected && styles.mealTypeChipTextActive]}>
+        {MEAL_LABELS[type]}
+      </Text>
+    </AnimatedPressable>
+  );
+}
+
+function ActionBtn({ onPress, disabled, style, children }: { onPress: () => void; disabled?: boolean; style?: object; children: React.ReactNode }) {
+  const press = useSharedValue(1);
+  const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: press.value }] }));
+  return (
+    <AnimatedPressable
+      onPressIn={() => { press.value = withTiming(0.97, { duration: theme.animation.press }); }}
+      onPressOut={() => { press.value = withTiming(1, { duration: theme.animation.press }); }}
+      onPress={onPress}
+      disabled={disabled}
+      style={[style, animStyle]}
+    >
+      {children}
+    </AnimatedPressable>
+  );
+}
 
 function Coach2Input() {
   const [text, setText] = useState('');
@@ -340,36 +377,30 @@ function Coach2Input() {
               {/* Meal type selector */}
               <View style={styles.mealTypeRow}>
                 {MEAL_TYPE_OPTIONS.map((type) => (
-                  <Pressable
+                  <MealTypeChip
                     key={type}
-                    style={[styles.mealTypeChip, selectedMealType === type && styles.mealTypeChipActive]}
+                    type={type}
+                    selected={selectedMealType === type}
                     onPress={() => {
                       setSelectedMealType(type);
                       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                     }}
-                  >
-                    <Text style={[
-                      styles.mealTypeChipText,
-                      selectedMealType === type && styles.mealTypeChipTextActive,
-                    ]}>
-                      {MEAL_LABELS[type]}
-                    </Text>
-                  </Pressable>
+                  />
                 ))}
               </View>
 
               {/* Action buttons */}
               <View style={styles.coach2Actions}>
-                <Pressable style={styles.discardBtn} onPress={handleDiscard}>
+                <ActionBtn style={styles.discardBtn} onPress={handleDiscard}>
                   <Text style={styles.discardBtnText}>Discard</Text>
-                </Pressable>
-                <Pressable
+                </ActionBtn>
+                <ActionBtn
                   style={[styles.confirmBtn, isPending && styles.confirmBtnDisabled]}
                   disabled={isPending}
                   onPress={handleConfirm}
                 >
                   <Text style={styles.confirmBtnText}>{isPending ? 'Logging...' : 'Log Meal'}</Text>
-                </Pressable>
+                </ActionBtn>
               </View>
             </>
           )}
@@ -399,6 +430,8 @@ function ParsedItemRow({ item, isLast }: { item: ParsedItem; isLast: boolean }) 
 export default function NutritionScreen() {
   const { data, isLoading } = useNutritionToday();
   const { mutate: deleteItem } = useDeleteMealItem();
+  const historyPress = useSharedValue(1);
+  const historyAnimStyle = useAnimatedStyle(() => ({ transform: [{ scale: historyPress.value }] }));
 
   const meals = data?.meals ?? [];
   const totals = data?.totals ?? { kcal: 0, proteinG: 0, carbsG: 0, fatG: 0 };
@@ -418,13 +451,15 @@ export default function NutritionScreen() {
           <View style={styles.header}>
             <View style={styles.headerTop}>
               <Text style={styles.dateMeta}>{getDateLabel()}</Text>
-              <Pressable
-                style={styles.historyBtn}
+              <AnimatedPressable
+                style={[styles.historyBtn, historyAnimStyle]}
+                onPressIn={() => { historyPress.value = withTiming(0.97, { duration: theme.animation.press }); }}
+                onPressOut={() => { historyPress.value = withTiming(1, { duration: theme.animation.press }); }}
                 onPress={() => router.push('/(tabs)/nutrition/history')}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
                 <Feather name="bar-chart-2" size={18} color={theme.colors.textTertiary} />
-              </Pressable>
+              </AnimatedPressable>
             </View>
             <Text style={styles.title}>Nutrition</Text>
           </View>

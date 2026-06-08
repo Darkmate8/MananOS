@@ -39,12 +39,14 @@ function HabitListRow({
 }) {
   const scale = useSharedValue(1);
   const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+  const checkScale = useSharedValue(1);
+  const checkAnimStyle = useAnimatedStyle(() => ({ transform: [{ scale: checkScale.value }] }));
   const isDone = habit.today_count >= habit.target_per_day;
 
   return (
     <AnimatedPressable
       style={[styles.listRow, !isLast && styles.listRowBorder, animStyle]}
-      onPressIn={() => { scale.value = withTiming(0.99, { duration: theme.animation.press }); }}
+      onPressIn={() => { scale.value = withTiming(0.97, { duration: theme.animation.press }); }}
       onPressOut={() => { scale.value = withTiming(1, { duration: theme.animation.press }); }}
       onPress={() => router.push(`/(tabs)/habits/${habit.id}`)}
     >
@@ -69,12 +71,15 @@ function HabitListRow({
       </View>
 
       {/* Check button */}
-      <Pressable
+      <AnimatedPressable
+        onPressIn={() => { checkScale.value = withTiming(0.97, { duration: theme.animation.press }); }}
+        onPressOut={() => { checkScale.value = withTiming(1, { duration: theme.animation.press }); }}
         onPress={() => {
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
           onCheck();
         }}
         hitSlop={10}
+        style={checkAnimStyle}
       >
         {isDone ? (
           <View style={[styles.checkCircle, { backgroundColor: habit.color + '22', borderColor: habit.color }]}>
@@ -89,9 +94,47 @@ function HabitListRow({
         ) : (
           <View style={styles.checkCircle} />
         )}
-      </Pressable>
+      </AnimatedPressable>
 
       <Feather name="chevron-right" size={16} color={theme.colors.textTertiary} />
+    </AnimatedPressable>
+  );
+}
+
+// ─── Animated sub-components ──────────────────────────────────────────────────
+
+function DonePill({ isDone, onPress }: { isDone: boolean; onPress: () => void }) {
+  const press = useSharedValue(1);
+  const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: press.value }] }));
+  return (
+    <AnimatedPressable
+      onPressIn={() => { press.value = withTiming(0.97, { duration: theme.animation.press }); }}
+      onPressOut={() => { press.value = withTiming(1, { duration: theme.animation.press }); }}
+      onPress={onPress}
+      style={[styles.donePill, isDone && styles.donePillActive, animStyle]}
+    >
+      {isDone && (
+        <Feather name="check" size={11} color={theme.colors.textPrimary} style={{ marginRight: 4 }} />
+      )}
+      <Text style={[styles.donePillText, isDone && styles.donePillTextActive]}>
+        {isDone ? 'Done today' : 'Mark done'}
+      </Text>
+    </AnimatedPressable>
+  );
+}
+
+function AddPressable({ onPress, style, hitSlop, children }: { onPress: () => void; style?: object; hitSlop?: number; children: React.ReactNode }) {
+  const press = useSharedValue(1);
+  const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: press.value }] }));
+  return (
+    <AnimatedPressable
+      onPressIn={() => { press.value = withTiming(0.97, { duration: theme.animation.press }); }}
+      onPressOut={() => { press.value = withTiming(1, { duration: theme.animation.press }); }}
+      onPress={onPress}
+      style={[style, animStyle]}
+      hitSlop={hitSlop}
+    >
+      {children}
     </AnimatedPressable>
   );
 }
@@ -122,22 +165,7 @@ function FeaturedCard({
       {/* Top row: name + done pill */}
       <View style={styles.featuredHeader}>
         <Text style={styles.featuredName} numberOfLines={2}>{habit.name}</Text>
-        <Pressable
-          onPress={onTodayTap}
-          style={[styles.donePill, isDone && styles.donePillActive]}
-        >
-          {isDone && (
-            <Feather
-              name="check"
-              size={11}
-              color={theme.colors.textPrimary}
-              style={{ marginRight: 4 }}
-            />
-          )}
-          <Text style={[styles.donePillText, isDone && styles.donePillTextActive]}>
-            {isDone ? 'Done today' : 'Mark done'}
-          </Text>
-        </Pressable>
+        <DonePill isDone={isDone} onPress={onTodayTap} />
       </View>
 
       {/* Streak line */}
@@ -244,13 +272,9 @@ export default function HabitsScreen() {
           </Text>
           <View style={styles.headerRow}>
             <Text style={styles.title}>Habits</Text>
-            <Pressable
-              onPress={() => router.push('/(modals)/create-habit')}
-              style={styles.addBtn}
-              hitSlop={8}
-            >
+            <AddPressable onPress={() => router.push('/(modals)/create-habit')} style={styles.addBtn} hitSlop={8}>
               <Feather name="plus" size={20} color={theme.colors.textPrimary} />
-            </Pressable>
+            </AddPressable>
           </View>
         </View>
 
@@ -271,9 +295,9 @@ export default function HabitsScreen() {
             <>
               <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>All habits</Text>
-                <Pressable onPress={() => router.push('/(modals)/create-habit')} hitSlop={8}>
+                <AddPressable onPress={() => router.push('/(modals)/create-habit')} hitSlop={8}>
                   <Text style={styles.addLink}>+ Add</Text>
-                </Pressable>
+                </AddPressable>
               </View>
 
               <View style={styles.listContainer}>

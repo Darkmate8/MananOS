@@ -1,6 +1,9 @@
 import { useRef, useMemo } from 'react';
 import { View, Text, ScrollView, Pressable, StyleSheet } from 'react-native';
+import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import { theme } from '@/lib/theme';
+
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 import {
   buildGrid,
   intensityColor,
@@ -20,6 +23,19 @@ interface HabitContributionGridProps {
   onTodayTap?: () => void;
   showLegend?: boolean;
   showHint?: boolean;
+}
+
+function TodayCell({ bgColor, onPress }: { bgColor: string; onPress: () => void }) {
+  const scale = useSharedValue(1);
+  const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+  return (
+    <AnimatedPressable
+      onPressIn={() => { scale.value = withTiming(0.97, { duration: theme.animation.press }); }}
+      onPressOut={() => { scale.value = withTiming(1, { duration: theme.animation.press }); }}
+      onPress={onPress}
+      style={[styles.cell, styles.cellToday, { backgroundColor: bgColor }, animStyle]}
+    />
+  );
 }
 
 export function HabitContributionGrid({
@@ -75,11 +91,13 @@ export function HabitContributionGrid({
                     ? 'transparent'
                     : intensityColor(count, targetPerDay);
 
+                  if (isToday && onTodayTap) {
+                    return <TodayCell key={colIndex} bgColor={bgColor} onPress={onTodayTap} />;
+                  }
                   return (
-                    <Pressable
+                    <View
                       key={colIndex}
-                      onPress={isToday ? onTodayTap : undefined}
-                      style={[styles.cell, { backgroundColor: bgColor }, isToday && styles.cellToday]}
+                      style={[styles.cell, { backgroundColor: bgColor }]}
                     />
                   );
                 })}

@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import {
   View,
   Text,
@@ -8,8 +8,8 @@ import {
   Switch,
   ScrollView,
   ActivityIndicator,
-  Animated,
 } from 'react-native';
+import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -17,6 +17,16 @@ import { useApiKeys } from '@/hooks/useApiKeys';
 import { useNotifPrefs } from '@/hooks/useNotifPrefs';
 import { useNotificationPermissions } from '@/hooks/useNotificationPermissions';
 import { theme } from '@/lib/theme';
+
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
+function usePressFeedback() {
+  const scale = useSharedValue(1);
+  const animatedStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+  const onPressIn = () => { scale.value = withTiming(0.97, { duration: theme.animation.press }); };
+  const onPressOut = () => { scale.value = withTiming(1, { duration: theme.animation.press }); };
+  return { animatedStyle, onPressIn, onPressOut };
+}
 
 type SaveState = 'idle' | 'saved' | 'error';
 
@@ -30,37 +40,28 @@ export default function SettingsModal() {
   const [showGemini, setShowGemini] = useState(false);
   const [saveState, setSaveState] = useState<SaveState>('idle');
 
-  const openaiScale = useRef(new Animated.Value(1)).current;
-  const saveScale = useRef(new Animated.Value(1)).current;
-  const clearScale = useRef(new Animated.Value(1)).current;
-
-  function animatePress(anim: Animated.Value, cb: () => void) {
-    Animated.sequence([
-      Animated.timing(anim, { toValue: 0.97, duration: 100, useNativeDriver: true }),
-      Animated.timing(anim, { toValue: 1, duration: 100, useNativeDriver: true }),
-    ]).start(cb);
-  }
+  const openaiEyePress = usePressFeedback();
+  const geminiEyePress = usePressFeedback();
+  const savePress = usePressFeedback();
+  const clearPress = usePressFeedback();
+  const permissionPress = usePressFeedback();
 
   async function handleSave() {
-    animatePress(saveScale, async () => {
-      try {
-        await save();
-        setSaveState('saved');
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        setTimeout(() => setSaveState('idle'), 2000);
-      } catch {
-        setSaveState('error');
-        setTimeout(() => setSaveState('idle'), 2000);
-      }
-    });
+    try {
+      await save();
+      setSaveState('saved');
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setTimeout(() => setSaveState('idle'), 2000);
+    } catch {
+      setSaveState('error');
+      setTimeout(() => setSaveState('idle'), 2000);
+    }
   }
 
   async function handleClear() {
-    animatePress(clearScale, async () => {
-      await clearAll();
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      setSaveState('idle');
-    });
+    await clearAll();
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setSaveState('idle');
   }
 
   if (!loaded) {
@@ -108,9 +109,11 @@ export default function SettingsModal() {
               autoCorrect={false}
               returnKeyType="done"
             />
-            <Pressable
+            <AnimatedPressable
+              onPressIn={openaiEyePress.onPressIn}
+              onPressOut={openaiEyePress.onPressOut}
               onPress={() => setShowOpenai((v) => !v)}
-              style={styles.eyeButton}
+              style={[styles.eyeButton, openaiEyePress.animatedStyle]}
               hitSlop={8}
             >
               <Ionicons
@@ -118,7 +121,7 @@ export default function SettingsModal() {
                 size={18}
                 color={theme.colors.textTertiary}
               />
-            </Pressable>
+            </AnimatedPressable>
           </View>
         </View>
 
@@ -138,9 +141,11 @@ export default function SettingsModal() {
               autoCorrect={false}
               returnKeyType="done"
             />
-            <Pressable
+            <AnimatedPressable
+              onPressIn={geminiEyePress.onPressIn}
+              onPressOut={geminiEyePress.onPressOut}
               onPress={() => setShowGemini((v) => !v)}
-              style={styles.eyeButton}
+              style={[styles.eyeButton, geminiEyePress.animatedStyle]}
               hitSlop={8}
             >
               <Ionicons
@@ -148,7 +153,7 @@ export default function SettingsModal() {
                 size={18}
                 color={theme.colors.textTertiary}
               />
-            </Pressable>
+            </AnimatedPressable>
           </View>
         </View>
 
@@ -159,8 +164,10 @@ export default function SettingsModal() {
         </Text>
 
         {checked && !granted && (
-          <Pressable
-            style={styles.permissionBanner}
+          <AnimatedPressable
+            style={[styles.permissionBanner, permissionPress.animatedStyle]}
+            onPressIn={permissionPress.onPressIn}
+            onPressOut={permissionPress.onPressOut}
             onPress={async () => {
               const result = await request();
               if (result.granted) {
@@ -173,7 +180,7 @@ export default function SettingsModal() {
             <Text style={styles.permissionBannerText}>
               Tap to grant notification permission
             </Text>
-          </Pressable>
+          </AnimatedPressable>
         )}
 
         {/* Water Reminders */}
@@ -201,18 +208,15 @@ export default function SettingsModal() {
             <Text style={styles.configLabel}>Interval</Text>
             <View style={styles.chipRow}>
               {([1, 2, 3, 4] as const).map((h) => (
-                <Pressable
+                <IntervalChip
                   key={h}
-                  style={[styles.chip, prefs.water_interval_hours === h && styles.chipActive]}
+                  value={h}
+                  active={prefs.water_interval_hours === h}
                   onPress={() => {
                     updatePrefs({ water_interval_hours: h });
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                   }}
-                >
-                  <Text style={[styles.chipLabel, prefs.water_interval_hours === h && styles.chipLabelActive]}>
-                    {h}h
-                  </Text>
-                </Pressable>
+                />
               ))}
             </View>
 
@@ -270,33 +274,39 @@ export default function SettingsModal() {
 
         {/* Actions */}
         <View style={styles.actions}>
-          <Animated.View style={[styles.saveButtonWrapper, { transform: [{ scale: saveScale }] }]}>
-            <Pressable
-              onPress={handleSave}
-              disabled={saving}
-              style={[
-                styles.saveButton,
-                saveState === 'saved' && styles.saveButtonSuccess,
-                saveState === 'error' && styles.saveButtonError,
-              ]}
-            >
-              {saving ? (
-                <ActivityIndicator size="small" color={theme.colors.textPrimary} />
-              ) : saveState === 'saved' ? (
-                <Ionicons name="checkmark" size={16} color={theme.colors.textPrimary} />
-              ) : null}
-              {!saving && (
-                <Text style={styles.saveButtonLabel}>{saveLabel}</Text>
-              )}
-            </Pressable>
-          </Animated.View>
+          <AnimatedPressable
+            onPressIn={savePress.onPressIn}
+            onPressOut={savePress.onPressOut}
+            onPress={handleSave}
+            disabled={saving}
+            style={[
+              styles.saveButtonWrapper,
+              styles.saveButton,
+              saveState === 'saved' && styles.saveButtonSuccess,
+              saveState === 'error' && styles.saveButtonError,
+              savePress.animatedStyle,
+            ]}
+          >
+            {saving ? (
+              <ActivityIndicator size="small" color={theme.colors.textPrimary} />
+            ) : saveState === 'saved' ? (
+              <Ionicons name="checkmark" size={16} color={theme.colors.textPrimary} />
+            ) : null}
+            {!saving && (
+              <Text style={styles.saveButtonLabel}>{saveLabel}</Text>
+            )}
+          </AnimatedPressable>
 
-          <Animated.View style={{ transform: [{ scale: clearScale }] }}>
-            <Pressable onPress={handleClear} style={styles.clearButton} disabled={saving}>
-              <Ionicons name="trash-outline" size={15} color={theme.colors.error} />
-              <Text style={styles.clearButtonLabel}>Clear All</Text>
-            </Pressable>
-          </Animated.View>
+          <AnimatedPressable
+            onPressIn={clearPress.onPressIn}
+            onPressOut={clearPress.onPressOut}
+            onPress={handleClear}
+            disabled={saving}
+            style={[styles.clearButton, clearPress.animatedStyle]}
+          >
+            <Ionicons name="trash-outline" size={15} color={theme.colors.error} />
+            <Text style={styles.clearButtonLabel}>Clear All</Text>
+          </AnimatedPressable>
         </View>
 
         {/* Key status indicators */}
@@ -306,6 +316,35 @@ export default function SettingsModal() {
         </View>
       </ScrollView>
     </SafeAreaView>
+  );
+}
+
+function StepperBtn({ onPress, icon }: { onPress: () => void; icon: 'remove' | 'add' }) {
+  const press = usePressFeedback();
+  return (
+    <AnimatedPressable
+      onPressIn={press.onPressIn}
+      onPressOut={press.onPressOut}
+      onPress={onPress}
+      style={[stepperStyles.btn, press.animatedStyle]}
+      hitSlop={8}
+    >
+      <Ionicons name={icon} size={14} color={theme.colors.textSecondary} />
+    </AnimatedPressable>
+  );
+}
+
+function IntervalChip({ value, active, onPress }: { value: number; active: boolean; onPress: () => void }) {
+  const press = usePressFeedback();
+  return (
+    <AnimatedPressable
+      style={[styles.chip, active && styles.chipActive, press.animatedStyle]}
+      onPressIn={press.onPressIn}
+      onPressOut={press.onPressOut}
+      onPress={onPress}
+    >
+      <Text style={[styles.chipLabel, active && styles.chipLabelActive]}>{value}h</Text>
+    </AnimatedPressable>
   );
 }
 
@@ -324,13 +363,9 @@ function StepperRow({
     <View style={stepperStyles.row}>
       <Text style={stepperStyles.label}>{label}</Text>
       <View style={stepperStyles.controls}>
-        <Pressable onPress={onDecrement} style={stepperStyles.btn} hitSlop={8}>
-          <Ionicons name="remove" size={14} color={theme.colors.textSecondary} />
-        </Pressable>
+        <StepperBtn onPress={onDecrement} icon="remove" />
         <Text style={stepperStyles.value}>{value}</Text>
-        <Pressable onPress={onIncrement} style={stepperStyles.btn} hitSlop={8}>
-          <Ionicons name="add" size={14} color={theme.colors.textSecondary} />
-        </Pressable>
+        <StepperBtn onPress={onIncrement} icon="add" />
       </View>
     </View>
   );

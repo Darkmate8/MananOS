@@ -25,6 +25,35 @@ import { useCreateHabit } from '@/hooks/useCreateHabit';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
+function ColorSwatch({ color, selected, onPress }: { color: string; selected: boolean; onPress: () => void }) {
+  const scale = useSharedValue(1);
+  const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+  return (
+    <AnimatedPressable
+      onPressIn={() => { scale.value = withTiming(0.97, { duration: theme.animation.press }); }}
+      onPressOut={() => { scale.value = withTiming(1, { duration: theme.animation.press }); }}
+      onPress={onPress}
+      style={[styles.colorSwatch, { backgroundColor: color }, selected && styles.colorSwatchSelected, animStyle]}
+    />
+  );
+}
+
+function CounterButton({ onPress, icon }: { onPress: () => void; icon: 'minus' | 'plus' }) {
+  const scale = useSharedValue(1);
+  const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+  return (
+    <AnimatedPressable
+      onPressIn={() => { scale.value = withTiming(0.97, { duration: theme.animation.press }); }}
+      onPressOut={() => { scale.value = withTiming(1, { duration: theme.animation.press }); }}
+      onPress={onPress}
+      style={[styles.counterBtn, animStyle]}
+      hitSlop={8}
+    >
+      <Feather name={icon} size={18} color={theme.colors.textPrimary} />
+    </AnimatedPressable>
+  );
+}
+
 const HABIT_COLORS = [
   theme.colors.accentPrimary,
   theme.colors.ringWater,
@@ -106,9 +135,9 @@ export default function CreateHabitModal() {
           {/* Header */}
           <View style={styles.headerRow}>
             <Text style={styles.title}>New Habit</Text>
-            <Pressable onPress={() => router.back()} hitSlop={12} style={styles.closeBtn}>
+            <PressableButton onPress={() => router.back()} style={styles.closeBtn}>
               <Feather name="x" size={20} color={theme.colors.textSecondary} />
-            </Pressable>
+            </PressableButton>
           </View>
 
           {/* Name */}
@@ -146,17 +175,14 @@ export default function CreateHabitModal() {
           <Text style={styles.label}>Color</Text>
           <View style={styles.colorRow}>
             {HABIT_COLORS.map((color) => (
-              <Pressable
+              <ColorSwatch
                 key={color}
+                color={color}
+                selected={selectedColor === color}
                 onPress={() => {
                   setSelectedColor(color);
                   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                 }}
-                style={[
-                  styles.colorSwatch,
-                  { backgroundColor: color },
-                  selectedColor === color && styles.colorSwatchSelected,
-                ]}
               />
             ))}
           </View>
@@ -193,21 +219,9 @@ export default function CreateHabitModal() {
             <>
               <Text style={styles.label}>Daily Target</Text>
               <View style={styles.counterRow}>
-                <Pressable
-                  onPress={() => adjustTarget(-1)}
-                  style={styles.counterBtn}
-                  hitSlop={8}
-                >
-                  <Feather name="minus" size={18} color={theme.colors.textPrimary} />
-                </Pressable>
+                <CounterButton onPress={() => adjustTarget(-1)} icon="minus" />
                 <Text style={styles.counterValue}>{targetCount}</Text>
-                <Pressable
-                  onPress={() => adjustTarget(1)}
-                  style={styles.counterBtn}
-                  hitSlop={8}
-                >
-                  <Feather name="plus" size={18} color={theme.colors.textPrimary} />
-                </Pressable>
+                <CounterButton onPress={() => adjustTarget(1)} icon="plus" />
               </View>
             </>
           )}

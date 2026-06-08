@@ -8,12 +8,23 @@ import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import { Stack, router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { QueryClient } from '@tanstack/react-query';
 import { PersistQueryClientProvider, PersistedClient, Persister } from '@tanstack/react-query-persist-client';
 
 import { theme } from '@/lib/theme';
+
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
+function usePressFeedback() {
+  const scale = useSharedValue(1);
+  const animatedStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+  const onPressIn = () => { scale.value = withTiming(0.97, { duration: theme.animation.press }); };
+  const onPressOut = () => { scale.value = withTiming(1, { duration: theme.animation.press }); };
+  return { animatedStyle, onPressIn, onPressOut };
+}
 import { tanstackMMKVStorage } from '@/lib/mmkv';
 import { useAuthStore } from '@/store/authStore';
 import { useSessionStore } from '@/store/sessionStore';
@@ -35,6 +46,39 @@ SplashScreen.preventAutoHideAsync();
 function NotificationReconciler() {
   useReconcileNotifications();
   return null;
+}
+
+function ResumeModal({ visible, onResume, onDiscard }: { visible: boolean; onResume: () => void; onDiscard: () => void }) {
+  const resumePress = usePressFeedback();
+  const discardPress = usePressFeedback();
+  return (
+    <Modal visible={visible} transparent animationType="fade" statusBarTranslucent>
+      <View style={styles.overlay}>
+        <View style={styles.sheet}>
+          <Text style={styles.sheetTitle}>Active session detected. Resume tracking?</Text>
+          <Text style={styles.sheetBody}>
+            You have an unfinished workout session. Pick up where you left off or discard it.
+          </Text>
+          <AnimatedPressable
+            style={[styles.resumeBtn, resumePress.animatedStyle]}
+            onPressIn={resumePress.onPressIn}
+            onPressOut={resumePress.onPressOut}
+            onPress={onResume}
+          >
+            <Text style={styles.resumeLabel}>Resume</Text>
+          </AnimatedPressable>
+          <AnimatedPressable
+            style={[styles.discardBtn, discardPress.animatedStyle]}
+            onPressIn={discardPress.onPressIn}
+            onPressOut={discardPress.onPressOut}
+            onPress={onDiscard}
+          >
+            <Text style={styles.discardLabel}>Discard Session</Text>
+          </AnimatedPressable>
+        </View>
+      </View>
+    </Modal>
+  );
 }
 
 const queryClient = new QueryClient({
@@ -101,22 +145,7 @@ export default function RootLayout() {
       <NotificationReconciler />
       <StatusBar style="light" />
 
-      <Modal visible={showResumeModal} transparent animationType="fade" statusBarTranslucent>
-        <View style={styles.overlay}>
-          <View style={styles.sheet}>
-            <Text style={styles.sheetTitle}>Active session detected. Resume tracking?</Text>
-            <Text style={styles.sheetBody}>
-              You have an unfinished workout session. Pick up where you left off or discard it.
-            </Text>
-            <Pressable style={styles.resumeBtn} onPress={handleResume}>
-              <Text style={styles.resumeLabel}>Resume</Text>
-            </Pressable>
-            <Pressable style={styles.discardBtn} onPress={handleDiscard}>
-              <Text style={styles.discardLabel}>Discard Session</Text>
-            </Pressable>
-          </View>
-        </View>
-      </Modal>
+      <ResumeModal visible={showResumeModal} onResume={handleResume} onDiscard={handleDiscard} />
 
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: theme.colors.bgCanvas } }}>
         <Stack.Screen name="index" />

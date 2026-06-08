@@ -5,8 +5,11 @@ import { useLocalSearchParams, router } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
 import * as Haptics from 'expo-haptics';
 import { Feather } from '@expo/vector-icons';
+import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 
 import { theme } from '@/lib/theme';
+
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 import { calcStreak, calcTotal, todayDateStr } from '@/lib/habitUtils';
 import { useHabitHistory, type HabitHistoryData } from '@/hooks/useHabitHistory';
 import { useLogHabitCompletion } from '@/hooks/useLogHabitCompletion';
@@ -23,6 +26,8 @@ export default function HabitDetailScreen() {
 
   const todayStr = useMemo(() => todayDateStr(), []);
   const habit = data?.habit;
+  const backScale = useSharedValue(1);
+  const backAnimStyle = useAnimatedStyle(() => ({ transform: [{ scale: backScale.value }] }));
   const completionsMap = data?.completionsMap ?? {};
 
   const streak = useMemo(
@@ -67,9 +72,15 @@ export default function HabitDetailScreen() {
 
         {/* Header */}
         <View style={styles.header}>
-          <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={12}>
+          <AnimatedPressable
+            onPressIn={() => { backScale.value = withTiming(0.97, { duration: theme.animation.press }); }}
+            onPressOut={() => { backScale.value = withTiming(1, { duration: theme.animation.press }); }}
+            onPress={() => router.back()}
+            style={[styles.backBtn, backAnimStyle]}
+            hitSlop={12}
+          >
             <Feather name="chevron-left" size={22} color={theme.colors.textSecondary} />
-          </Pressable>
+          </AnimatedPressable>
           <View style={styles.headerText}>
             <Text style={styles.dateMeta}>HABIT DETAIL</Text>
             <Text style={styles.title} numberOfLines={2}>{habit?.name ?? '—'}</Text>

@@ -563,6 +563,7 @@ const sepStyles = StyleSheet.create({
 // ─── No Key Banner ────────────────────────────────────────────────────────────
 
 function NoKeyBanner() {
+  const press = usePressFeedback();
   return (
     <View style={noKeyStyles.container}>
       <Ionicons name="key-outline" size={40} color={theme.colors.textTertiary} />
@@ -570,13 +571,15 @@ function NoKeyBanner() {
       <Text style={noKeyStyles.body}>
         Add your Gemini API key in Settings to activate the AI Coach.
       </Text>
-      <Pressable
-        style={noKeyStyles.button}
+      <AnimatedPressable
+        style={[noKeyStyles.button, press.animatedStyle]}
+        onPressIn={press.onPressIn}
+        onPressOut={press.onPressOut}
         onPress={() => router.push('/(modals)/settings')}
       >
         <Ionicons name="settings-outline" size={16} color={theme.colors.bgCanvas} />
         <Text style={noKeyStyles.buttonLabel}>Open Settings</Text>
-      </Pressable>
+      </AnimatedPressable>
     </View>
   );
 }
@@ -633,6 +636,7 @@ export default function CoachScreen() {
   const [isStreaming, setIsStreaming] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const sendPress = usePressFeedback();
+  const backPress = usePressFeedback();
   const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
@@ -743,9 +747,15 @@ export default function CoachScreen() {
     return (
       <SafeAreaView style={styles.safe} edges={['top']}>
         <View style={styles.header}>
-          <Pressable onPress={() => router.back()} hitSlop={12} style={styles.backBtn}>
+          <AnimatedPressable
+            onPressIn={backPress.onPressIn}
+            onPressOut={backPress.onPressOut}
+            onPress={() => router.back()}
+            hitSlop={12}
+            style={[styles.backBtn, backPress.animatedStyle]}
+          >
             <Ionicons name="arrow-back" size={20} color={theme.colors.textSecondary} />
-          </Pressable>
+          </AnimatedPressable>
           <Text style={styles.headerTitle}>COACH · V1</Text>
           <View style={{ width: 32 }} />
         </View>
@@ -758,9 +768,15 @@ export default function CoachScreen() {
     <SafeAreaView style={styles.safe} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} hitSlop={12} style={styles.backBtn}>
+        <AnimatedPressable
+          onPressIn={backPress.onPressIn}
+          onPressOut={backPress.onPressOut}
+          onPress={() => router.back()}
+          hitSlop={12}
+          style={[styles.backBtn, backPress.animatedStyle]}
+        >
           <Ionicons name="arrow-back" size={20} color={theme.colors.textSecondary} />
-        </Pressable>
+        </AnimatedPressable>
         <Text style={styles.headerTitle}>COACH · V1</Text>
         <View style={{ width: 32 }} />
       </View>

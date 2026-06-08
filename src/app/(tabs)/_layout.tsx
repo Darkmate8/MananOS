@@ -1,7 +1,8 @@
 import { Tabs } from 'expo-router';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
+import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 
 type TabBarProps = {
   state: { index: number; routes: { key: string; name: string }[] };
@@ -10,6 +11,38 @@ type TabBarProps = {
 };
 
 import { theme } from '@/lib/theme';
+
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
+function TabItem({
+  route,
+  tab,
+  focused,
+  onPress,
+}: {
+  route: { key: string; name: string };
+  tab: (typeof TAB_DEFS)[number];
+  focused: boolean;
+  onPress: () => void;
+}) {
+  const scale = useSharedValue(1);
+  const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+  const color = focused ? theme.colors.textPrimary : theme.colors.textTertiary;
+  return (
+    <AnimatedPressable
+      key={route.key}
+      style={[styles.item, animStyle]}
+      onPressIn={() => { scale.value = withTiming(0.97, { duration: theme.animation.press }); }}
+      onPressOut={() => { scale.value = withTiming(1, { duration: theme.animation.press }); }}
+      onPress={onPress}
+    >
+      {focused && <View style={styles.activeDot} />}
+      {!focused && <View style={styles.dotSpacer} />}
+      <Feather name={tab.icon} size={22} color={color} />
+      <Text style={[styles.label, { color }]} numberOfLines={1}>{tab.label}</Text>
+    </AnimatedPressable>
+  );
+}
 
 const TAB_DEFS = [
   { name: 'index',     label: 'Today',     icon: 'home'       },
@@ -34,22 +67,14 @@ function CustomTabBar({ state, navigation }: TabBarProps) {
         {visibleRoutes.map((route: { key: string; name: string }) => {
           const tab = TAB_DEFS.find((t) => t.name === route.name)!;
           const focused = activeRouteName === route.name;
-          const color = focused ? theme.colors.textPrimary : theme.colors.textTertiary;
-
           return (
-            <TouchableOpacity
+            <TabItem
               key={route.key}
-              style={styles.item}
-              activeOpacity={1}
-              onPress={() => {
-                if (!focused) navigation.navigate(route.name);
-              }}
-            >
-              {focused && <View style={styles.activeDot} />}
-              {!focused && <View style={styles.dotSpacer} />}
-              <Feather name={tab.icon} size={22} color={color} />
-              <Text style={[styles.label, { color }]} numberOfLines={1}>{tab.label}</Text>
-            </TouchableOpacity>
+              route={route}
+              tab={tab}
+              focused={focused}
+              onPress={() => { if (!focused) navigation.navigate(route.name); }}
+            />
           );
         })}
       </View>

@@ -5,6 +5,8 @@ import Animated, {
   useAnimatedStyle,
   withTiming,
 } from 'react-native-reanimated';
+
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { theme } from '@/lib/theme';
 import { useRestTimer } from '@/hooks/useRestTimer';
@@ -19,6 +21,8 @@ export function RestTimerOverlay() {
   const { remaining, isActive, total, skip } = useRestTimer();
   const insets = useSafeAreaInsets();
   const translateY = useSharedValue(160);
+  const skipScale = useSharedValue(1);
+  const skipAnimStyle = useAnimatedStyle(() => ({ transform: [{ scale: skipScale.value }] }));
 
   useEffect(() => {
     translateY.value = withTiming(isActive ? 0 : 160, {
@@ -53,9 +57,15 @@ export function RestTimerOverlay() {
           />
         </View>
 
-        <Pressable onPress={skip} hitSlop={12} style={styles.skipBtn}>
+        <AnimatedPressable
+          onPressIn={() => { skipScale.value = withTiming(0.97, { duration: theme.animation.press }); }}
+          onPressOut={() => { skipScale.value = withTiming(1, { duration: theme.animation.press }); }}
+          onPress={skip}
+          hitSlop={12}
+          style={[styles.skipBtn, skipAnimStyle]}
+        >
           <Text style={styles.skipText}>Skip</Text>
-        </Pressable>
+        </AnimatedPressable>
       </View>
     </Animated.View>
   );

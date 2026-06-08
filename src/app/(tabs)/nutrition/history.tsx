@@ -52,6 +52,8 @@ function SummaryCard({ label, value, unit, color }: { label: string; value: numb
 export default function NutritionHistoryScreen() {
   const [activeMetric, setActiveMetric] = useState<Metric>('kcal');
   const { data, isLoading } = useNutritionHistory();
+  const backScale = useSharedValue(1);
+  const backAnimStyle = useAnimatedStyle(() => ({ transform: [{ scale: backScale.value }] }));
   const { width: screenWidth } = useWindowDimensions();
 
   // card has 24px margin each side + 16px padding each side
@@ -102,13 +104,15 @@ export default function NutritionHistoryScreen() {
 
         {/* Header */}
         <View style={styles.header}>
-          <Pressable
-            style={styles.backBtn}
+          <AnimatedPressable
+            style={[styles.backBtn, backAnimStyle]}
+            onPressIn={() => { backScale.value = withTiming(0.97, { duration: theme.animation.press }); }}
+            onPressOut={() => { backScale.value = withTiming(1, { duration: theme.animation.press }); }}
             onPress={() => router.back()}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
             <Feather name="arrow-left" size={20} color={theme.colors.textSecondary} />
-          </Pressable>
+          </AnimatedPressable>
           <View style={styles.headerText}>
             <Text style={styles.dateMeta}>7-DAY OVERVIEW</Text>
             <Text style={styles.title}>History</Text>

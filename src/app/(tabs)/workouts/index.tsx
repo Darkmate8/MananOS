@@ -1,10 +1,10 @@
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { format } from 'date-fns';
 import { router } from 'expo-router';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
-import { Pressable } from 'react-native';
 import * as Haptics from 'expo-haptics';
+import { Ionicons } from '@expo/vector-icons';
 
 import { theme } from '@/lib/theme';
 import { useWorkoutSessions } from '@/hooks/useWorkoutSessions';
@@ -54,9 +54,10 @@ export default function WorkoutsScreen() {
             <ActivityIndicator color={theme.colors.accentPrimary} size="large" />
           </View>
         ) : !sessions || sessions.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyStateText}>No workouts yet</Text>
-            <Text style={styles.emptyStateSubtext}>Start tracking by logging a workout</Text>
+          <View style={styles.emptyCard}>
+            <Ionicons name="barbell-outline" size={32} color={theme.colors.textTertiary} />
+            <Text style={styles.emptyTitle}>No workouts logged yet</Text>
+            <Text style={styles.emptyBody}>Tap Start Workout below to begin your first session.</Text>
           </View>
         ) : (
           <View style={styles.listContainer}>
@@ -146,19 +147,27 @@ const styles = StyleSheet.create({
     paddingVertical: theme.spacing.xxxl,
     alignItems: 'center',
   },
-  emptyState: {
+  emptyCard: {
     marginHorizontal: theme.spacing.xxl,
+    marginTop: theme.spacing.xxl,
     paddingVertical: theme.spacing.xxxl,
+    backgroundColor: theme.colors.bgSurface1,
+    borderRadius: theme.radius.card,
+    borderWidth: 1,
+    borderColor: theme.colors.borderDefault,
     alignItems: 'center',
-    gap: theme.spacing.md,
+    gap: theme.spacing.sm,
   },
-  emptyStateText: {
-    ...theme.typography.bodyCore,
+  emptyTitle: {
+    ...theme.typography.bodyBold,
     color: theme.colors.textSecondary,
+    marginTop: theme.spacing.sm,
   },
-  emptyStateSubtext: {
+  emptyBody: {
     ...theme.typography.captionMuted,
     color: theme.colors.textTertiary,
+    textAlign: 'center',
+    paddingHorizontal: theme.spacing.xl,
   },
   listContainer: {
     paddingHorizontal: 0,
