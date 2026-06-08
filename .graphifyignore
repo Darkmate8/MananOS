@@ -1,0 +1,27 @@
+# Node & Expo Build Artifacts
+
+node_modules/
+.expo/
+dist/
+web-build/
+ios/
+android/
+
+# Heavy Auto-generated files
+
+database.types.ts
+
+# Media Assets
+
+assets/
+_.png
+_.jpg
+_.jpeg
+_.svg
+_.mp4
+_.ttf
+
+# Internal AI Routing
+
+.claude/
+CLAUDE.md

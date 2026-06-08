@@ -17,7 +17,8 @@ import { theme } from '@/lib/theme';
 import { useNutritionToday, type MealWithItems, type MealItemView } from '@/hooks/useNutritionToday';
 import { useDeleteMealItem } from '@/hooks/useDeleteMealItem';
 import { useLogMealFromCoach } from '@/hooks/useLogMealFromCoach';
-import { mockParseNlp, type ParseResult, type ParsedItem } from '@/lib/nutritionMockParser';
+import { useCoach2Parse } from '@/hooks/useCoach2Parse';
+import type { ParseResult, ParsedItem } from '@/lib/nutritionMockParser';
 import type { MealType } from '@/types/database.types';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
@@ -153,7 +154,7 @@ function MealItemRow({
           <Text style={styles.itemBrand} numberOfLines={1}>{item.foodBrand}</Text>
         ) : null}
         <Text style={styles.itemMeta}>
-          {item.quantity}{item.unit}
+          {item.quantity} {item.unit}
           {item.proteinG > 0 ? `  ·  ${Math.round(item.proteinG)}g protein` : ''}
         </Text>
       </View>
@@ -230,15 +231,16 @@ function Coach2Input() {
   const [parseResult, setParseResult] = useState<ParseResult | null>(null);
   const [selectedMealType, setSelectedMealType] = useState<MealType>('lunch');
   const { mutate: logMeal, isPending } = useLogMealFromCoach();
+  const { parse, isParsing, parseError } = useCoach2Parse();
   const inputRef = useRef<TextInput>(null);
 
   const sendScale = useSharedValue(1);
   const sendAnimStyle = useAnimatedStyle(() => ({ transform: [{ scale: sendScale.value }] }));
 
-  function handleParse() {
-    const result = mockParseNlp(text.trim());
-    setParseResult(result);
+  async function handleParse() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    const result = await parse(text.trim());
+    if (result) setParseResult(result);
   }
 
   function handleConfirm() {
@@ -284,16 +286,27 @@ function Coach2Input() {
         />
         <Animated.View style={sendAnimStyle}>
           <Pressable
-            style={[styles.coach2SendBtn, (!text.trim() || isPending) && styles.coach2SendBtnDisabled]}
-            disabled={!text.trim() || isPending}
+            style={[styles.coach2SendBtn, (!text.trim() || isPending || isParsing) && styles.coach2SendBtnDisabled]}
+            disabled={!text.trim() || isPending || isParsing}
             onPressIn={() => { sendScale.value = withTiming(0.97, { duration: theme.animation.press }); }}
             onPressOut={() => { sendScale.value = withTiming(1, { duration: theme.animation.press }); }}
             onPress={handleParse}
           >
-            <Feather name="arrow-up" size={18} color={theme.colors.bgCanvas} />
+            {isParsing
+              ? <Feather name="loader" size={18} color={theme.colors.bgCanvas} />
+              : <Feather name="arrow-up" size={18} color={theme.colors.bgCanvas} />
+            }
           </Pressable>
         </Animated.View>
       </View>
+
+      {/* API / parse error */}
+      {parseError !== null && (
+        <View style={styles.parseErrorBox}>
+          <Feather name="alert-circle" size={14} color={theme.colors.ringCalories} />
+          <Text style={styles.parseErrorText}>{parseError}</Text>
+        </View>
+      )}
 
       {/* Parse result card */}
       {parseResult !== null && (
@@ -372,7 +385,7 @@ function ParsedItemRow({ item, isLast }: { item: ParsedItem; isLast: boolean }) 
       <View style={styles.parsedItemInfo}>
         <Text style={styles.parsedItemName}>{item.name}</Text>
         <Text style={styles.parsedItemMeta}>
-          {item.quantity}{item.unit}
+          {item.quantity} {item.unit}
           {item.protein_g > 0 ? `  ·  ${Math.round(item.protein_g)}g protein` : ''}
         </Text>
       </View>
@@ -761,6 +774,26 @@ const styles = StyleSheet.create({
   },
   coach2SendBtnDisabled: {
     backgroundColor: theme.colors.bgSurface2,
+  },
+
+  // Parse error
+  parseErrorBox: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: theme.spacing.sm,
+    paddingVertical: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.md,
+    backgroundColor: theme.colors.bgSurface1,
+    borderRadius: theme.radius.button,
+    borderWidth: 1,
+    borderColor: theme.colors.ringCalories,
+  },
+  parseErrorText: {
+    flex: 1,
+    fontSize: 13,
+    fontFamily: theme.fonts.body.fontFamily,
+    color: theme.colors.ringCalories,
+    lineHeight: 18,
   },
 
   // Parse result card

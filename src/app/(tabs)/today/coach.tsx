@@ -13,7 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { useState, useCallback, useEffect, useRef } from 'react';
 import * as Haptics from 'expo-haptics';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, Feather } from '@expo/vector-icons';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { streamText } from 'ai';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
@@ -31,25 +31,27 @@ interface ChatMessage {
   id: string;
   role: 'user' | 'assistant';
   content: string;
+  timestamp: Date;
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+// ─── System Prompt ────────────────────────────────────────────────────────────
 
 function buildSystemPrompt(ctx: CoachContext | undefined): string {
   const base = `You are a Staff-Level Strength Coach, Biomechanist, and Habit Strategist.
 Tone: Warm, direct, editorial, and highly specific. No clinical coldness; no emoji-spam. Speak like an experienced coach who knows the user's data.
 
-RULES:
-- You have absolute memory of all historical logs below. Never ask the user what they lifted or completed if the data is present.
-- Frame progression over absolute numbers. Spot trends and reference them natively.
-- If a data point is empty, acknowledge the blank slate. Do not invent history.
-- Steps at 0 = unlogged, not zero activity.
-- Keep responses concise: max 2 brief paragraphs + one actionable metric box if appropriate.
-- Never output meta-commentary or apologies. Start directly with the coaching directive.
-- When delivering performance summaries, use this exact markdown table format:
-  ### [EXERCISE_NAME] Progression
-  | Session | Top Set | Calculated Volume | Avg RPE |
-  | :------ | :------ | :---------------- | :------ |`;
+FORMATTING RULES (follow strictly):
+- Wrap all inline data points, metrics, and values in backticks: \`+18% volume\`, \`92kg top set\`, \`6h 32m avg sleep\`, \`RPE 6-7\`
+- Never wrap backtick chips in parentheses. Include all context inside the backtick: use \`RPE 6-7\` not (\`RPE 6-7\`)
+- Use **bold** for key emphasis and exercise names
+- Use ### for section headers when giving structured plans
+- Use bullet lists (- item) for workout prescriptions and numbered steps
+- For performance tables, use this exact format:
+  ### [EXERCISE] Progression
+  | Session | Top Set | Volume | RPE |
+  | :------ | :------ | :----- | :-- |
+- Keep responses concise: max 2 paragraphs + 1 structured block if appropriate
+- Never output meta-commentary or apologies. Start directly with the coaching directive.`;
 
   if (!ctx) return base;
 
@@ -71,7 +73,321 @@ function usePressFeedback() {
   return { animatedStyle, onPressIn, onPressOut };
 }
 
+// ─── Markdown Renderer ────────────────────────────────────────────────────────
+
+type InlineSegment =
+  | { type: 'text'; value: string }
+  | { type: 'bold'; value: string }
+  | { type: 'chip'; value: string };
+
+function parseInline(raw: string): InlineSegment[] {
+  const segments: InlineSegment[] = [];
+  const pattern = /(\*\*([^*]+)\*\*|`([^`]+)`)/g;
+  let last = 0;
+  let match: RegExpExecArray | null;
+
+  while ((match = pattern.exec(raw)) !== null) {
+    if (match.index > last) {
+      segments.push({ type: 'text', value: raw.slice(last, match.index) });
+    }
+    if (match[0].startsWith('**')) {
+      segments.push({ type: 'bold', value: match[2] });
+    } else {
+      segments.push({ type: 'chip', value: match[3] });
+    }
+    last = match.index + match[0].length;
+  }
+
+  if (last < raw.length) {
+    segments.push({ type: 'text', value: raw.slice(last) });
+  }
+
+  // Strip orphaned ( before chips and ) after chips so brackets don't float outside
+  for (let i = 0; i < segments.length; i++) {
+    if (segments[i].type === 'chip') {
+      if (i > 0 && segments[i - 1].type === 'text') {
+        segments[i - 1] = { type: 'text', value: (segments[i - 1] as { type: 'text'; value: string }).value.replace(/\(\s*$/, '') };
+      }
+      if (i < segments.length - 1 && segments[i + 1].type === 'text') {
+        segments[i + 1] = { type: 'text', value: (segments[i + 1] as { type: 'text'; value: string }).value.replace(/^\s*\)/, '') };
+      }
+    }
+  }
+
+  return segments;
+}
+
+function InlineText({ raw, style }: { raw: string; style?: object }) {
+  const segments = parseInline(raw);
+
+  // If no chips, render as a plain nested Text (preserves natural line wrapping)
+  const hasChips = segments.some((s) => s.type === 'chip');
+  if (!hasChips) {
+    return (
+      <Text style={style}>
+        {segments.map((seg, i) =>
+          seg.type === 'bold'
+            ? <Text key={i} style={mdStyles.bold}>{seg.value}</Text>
+            : <Text key={i}>{seg.value}</Text>
+        )}
+      </Text>
+    );
+  }
+
+  // Chip present: use flex-wrap View so chips get real View border radius
+  return (
+    <View style={mdStyles.inlineRow}>
+      {segments.map((seg, i) => {
+        if (seg.type === 'bold') {
+          return <Text key={i} style={[style, mdStyles.bold]}>{seg.value}</Text>;
+        }
+        if (seg.type === 'chip') {
+          return (
+            <View key={i} style={mdStyles.chipContainer}>
+              <Text style={mdStyles.chipText}>{seg.value}</Text>
+            </View>
+          );
+        }
+        return <Text key={i} style={style}>{seg.value}</Text>;
+      })}
+    </View>
+  );
+}
+
+type Block =
+  | { kind: 'h3'; text: string }
+  | { kind: 'h2'; text: string }
+  | { kind: 'paragraph'; text: string }
+  | { kind: 'bullet'; text: string }
+  | { kind: 'table'; headers: string[]; rows: string[][] }
+  | { kind: 'divider' };
+
+function parseBlocks(content: string): Block[] {
+  const lines = content.split('\n');
+  const blocks: Block[] = [];
+  let i = 0;
+
+  while (i < lines.length) {
+    const line = lines[i].trim();
+
+    if (line === '') { i++; continue; }
+    if (line === '---' || line === '***') { blocks.push({ kind: 'divider' }); i++; continue; }
+
+    if (line.startsWith('### ')) {
+      blocks.push({ kind: 'h3', text: line.slice(4) });
+      i++;
+      continue;
+    }
+    if (line.startsWith('## ')) {
+      blocks.push({ kind: 'h2', text: line.slice(3) });
+      i++;
+      continue;
+    }
+
+    if (line.startsWith('* ') || line.startsWith('- ')) {
+      blocks.push({ kind: 'bullet', text: line.slice(2) });
+      i++;
+      continue;
+    }
+
+    if (line.startsWith('|')) {
+      const headerCells = line.split('|').slice(1, -1).map((c) => c.trim());
+      i++;
+      // skip separator row (|:---|:---|)
+      if (i < lines.length && lines[i].trim().startsWith('|') && lines[i].includes('---')) i++;
+      const rows: string[][] = [];
+      while (i < lines.length && lines[i].trim().startsWith('|')) {
+        rows.push(lines[i].trim().split('|').slice(1, -1).map((c) => c.trim()));
+        i++;
+      }
+      blocks.push({ kind: 'table', headers: headerCells, rows });
+      continue;
+    }
+
+    blocks.push({ kind: 'paragraph', text: line });
+    i++;
+  }
+
+  return blocks;
+}
+
+function MarkdownContent({ content, isUser }: { content: string; isUser: boolean }) {
+  if (isUser) {
+    return <Text style={mdStyles.userText}>{content}</Text>;
+  }
+
+  const blocks = parseBlocks(content);
+
+  return (
+    <View style={{ gap: theme.spacing.sm }}>
+      {blocks.map((block, idx) => {
+        switch (block.kind) {
+          case 'h3':
+            return (
+              <Text key={idx} style={mdStyles.h3}>
+                {block.text}
+              </Text>
+            );
+          case 'h2':
+            return (
+              <Text key={idx} style={mdStyles.h2}>
+                {block.text}
+              </Text>
+            );
+          case 'divider':
+            return <View key={idx} style={mdStyles.divider} />;
+          case 'bullet':
+            return (
+              <View key={idx} style={mdStyles.bulletRow}>
+                <View style={mdStyles.bulletDot} />
+                <InlineText raw={block.text} style={mdStyles.bodyText} />
+              </View>
+            );
+          case 'table':
+            return (
+              <View key={idx} style={mdStyles.tableCard}>
+                <View style={mdStyles.tableHeader}>
+                  {block.headers.map((h, hi) => (
+                    <Text key={hi} style={[mdStyles.tableHeaderCell, hi > 0 && mdStyles.tableRightCell]}>
+                      {h}
+                    </Text>
+                  ))}
+                </View>
+                {block.rows.map((row, ri) => (
+                  <View key={ri} style={[mdStyles.tableRow, ri < block.rows.length - 1 && mdStyles.tableRowBorder]}>
+                    {row.map((cell, ci) => (
+                      <Text key={ci} style={[mdStyles.tableCell, ci > 0 && mdStyles.tableRightCell]}>
+                        {cell}
+                      </Text>
+                    ))}
+                  </View>
+                ))}
+              </View>
+            );
+          case 'paragraph':
+          default:
+            return (
+              <InlineText key={idx} raw={block.text} style={mdStyles.bodyText} />
+            );
+        }
+      })}
+    </View>
+  );
+}
+
+const mdStyles = StyleSheet.create({
+  userText: {
+    fontSize: 15,
+    fontFamily: theme.fonts.body.fontFamily,
+    color: theme.colors.bgCanvas,
+    lineHeight: 22,
+  },
+  bodyText: {
+    fontSize: 15,
+    fontFamily: theme.fonts.body.fontFamily,
+    color: theme.colors.textPrimary,
+    lineHeight: 23,
+  },
+  bold: {
+    fontFamily: theme.fonts.bodyBold.fontFamily,
+    color: theme.colors.textPrimary,
+  },
+  inlineRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+  },
+  chipContainer: {
+    backgroundColor: theme.colors.accentPrimaryMuted,
+    borderRadius: theme.radius.pill,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    marginHorizontal: 2,
+  },
+  chipText: {
+    fontFamily: theme.fonts.mono.fontFamily,
+    fontSize: 12,
+    color: theme.colors.accentPrimary,
+    lineHeight: 18,
+  },
+  h3: {
+    fontSize: 16,
+    fontFamily: theme.fonts.display.fontFamily,
+    color: theme.colors.textPrimary,
+    lineHeight: 22,
+    marginTop: theme.spacing.xs,
+  },
+  h2: {
+    fontSize: 18,
+    fontFamily: theme.fonts.display.fontFamily,
+    color: theme.colors.textPrimary,
+    lineHeight: 26,
+    marginTop: theme.spacing.xs,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: theme.colors.borderDefault,
+    marginVertical: theme.spacing.xs,
+  },
+  bulletRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: theme.spacing.sm,
+  },
+  bulletDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: theme.colors.accentPrimary,
+    marginTop: 9,
+    flexShrink: 0,
+  },
+  tableCard: {
+    borderRadius: theme.radius.button,
+    borderWidth: 1,
+    borderColor: theme.colors.borderStrong,
+    overflow: 'hidden',
+    marginTop: theme.spacing.xs,
+  },
+  tableHeader: {
+    flexDirection: 'row',
+    backgroundColor: theme.colors.bgSurface2,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.sm,
+  },
+  tableHeaderCell: {
+    flex: 1,
+    fontSize: 11,
+    fontFamily: theme.fonts.mono.fontFamily,
+    color: theme.colors.textTertiary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+  },
+  tableRow: {
+    flexDirection: 'row',
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.sm,
+  },
+  tableRowBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.borderDefault,
+  },
+  tableCell: {
+    flex: 1,
+    fontSize: 13,
+    fontFamily: theme.fonts.mono.fontFamily,
+    color: theme.colors.textPrimary,
+  },
+  tableRightCell: {
+    textAlign: 'right',
+  },
+});
+
 // ─── Message Bubble ───────────────────────────────────────────────────────────
+
+function formatTime(date: Date): string {
+  return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+}
 
 function MessageBubble({ message, isStreaming }: { message: ChatMessage; isStreaming?: boolean }) {
   const isUser = message.role === 'user';
@@ -79,19 +395,20 @@ function MessageBubble({ message, isStreaming }: { message: ChatMessage; isStrea
   return (
     <View style={[bubbleStyles.wrapper, isUser ? bubbleStyles.wrapperUser : bubbleStyles.wrapperAssistant]}>
       {!isUser && (
-        <View style={bubbleStyles.avatarRow}>
+        <View style={bubbleStyles.avatarCol}>
           <View style={bubbleStyles.avatar}>
             <Text style={bubbleStyles.avatarText}>C</Text>
           </View>
         </View>
       )}
-      <View style={[bubbleStyles.bubble, isUser ? bubbleStyles.bubbleUser : bubbleStyles.bubbleAssistant]}>
-        <Text style={[bubbleStyles.text, isUser ? bubbleStyles.textUser : bubbleStyles.textAssistant]}>
-          {message.content}
+      <View style={bubbleStyles.contentCol}>
+        <View style={[bubbleStyles.bubble, isUser ? bubbleStyles.bubbleUser : bubbleStyles.bubbleAssistant]}>
+          <MarkdownContent content={message.content} isUser={isUser} />
+          {isStreaming && <View style={bubbleStyles.cursor} />}
+        </View>
+        <Text style={[bubbleStyles.timestamp, isUser && bubbleStyles.timestampRight]}>
+          {formatTime(message.timestamp)}
         </Text>
-        {isStreaming && (
-          <View style={bubbleStyles.cursor} />
-        )}
       </View>
     </View>
   );
@@ -100,19 +417,17 @@ function MessageBubble({ message, isStreaming }: { message: ChatMessage; isStrea
 const bubbleStyles = StyleSheet.create({
   wrapper: {
     marginVertical: theme.spacing.xs,
-    maxWidth: '85%',
   },
   wrapperUser: {
-    alignSelf: 'flex-end',
+    alignItems: 'flex-end',
   },
   wrapperAssistant: {
-    alignSelf: 'flex-start',
     flexDirection: 'row',
-    alignItems: 'flex-end',
+    alignItems: 'flex-start',
     gap: theme.spacing.sm,
   },
-  avatarRow: {
-    marginBottom: theme.spacing.xs,
+  avatarCol: {
+    paddingTop: theme.spacing.xs,
   },
   avatar: {
     width: 28,
@@ -127,10 +442,13 @@ const bubbleStyles = StyleSheet.create({
     fontFamily: theme.fonts.bodyBold.fontFamily,
     color: theme.colors.bgCanvas,
   },
+  contentCol: {
+    maxWidth: '82%',
+    gap: 4,
+  },
   bubble: {
     borderRadius: theme.radius.card,
     padding: theme.spacing.lg,
-    flex: 1,
   },
   bubbleUser: {
     backgroundColor: theme.colors.accentPrimary,
@@ -142,24 +460,103 @@ const bubbleStyles = StyleSheet.create({
     borderColor: theme.colors.borderDefault,
     borderBottomLeftRadius: theme.spacing.xs,
   },
-  text: {
-    fontSize: 15,
-    lineHeight: 22,
-  },
-  textUser: {
+  timestamp: {
+    fontSize: 11,
     fontFamily: theme.fonts.body.fontFamily,
-    color: theme.colors.bgCanvas,
+    color: theme.colors.textTertiary,
+    paddingLeft: theme.spacing.xs,
   },
-  textAssistant: {
-    fontFamily: theme.fonts.body.fontFamily,
-    color: theme.colors.textPrimary,
+  timestampRight: {
+    textAlign: 'right',
+    paddingRight: theme.spacing.xs,
   },
   cursor: {
     width: 8,
     height: 2,
-    backgroundColor: theme.colors.accentPrimary,
-    marginTop: theme.spacing.xs,
+    backgroundColor: theme.colors.accentPrimaryMuted,
+    marginTop: theme.spacing.sm,
     borderRadius: 1,
+  },
+});
+
+// ─── Context Chips ────────────────────────────────────────────────────────────
+
+function ContextChips({ context }: { context: CoachContext | undefined }) {
+  if (!context) return null;
+
+  const chips = [
+    { icon: 'activity' as const, label: 'Last 4 workouts' },
+    { icon: 'pie-chart' as const, label: '7-day nutrition' },
+    { icon: 'check-square' as const, label: 'Habit grid' },
+  ];
+
+  return (
+    <View style={chipStyles.row}>
+      {chips.map((chip) => (
+        <View key={chip.label} style={chipStyles.chip}>
+          <Feather name={chip.icon} size={11} color={theme.colors.textTertiary} />
+          <Text style={chipStyles.label}>{chip.label}</Text>
+        </View>
+      ))}
+    </View>
+  );
+}
+
+const chipStyles = StyleSheet.create({
+  row: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.xxl,
+    paddingBottom: theme.spacing.md,
+  },
+  chip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.xs,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: 5,
+    backgroundColor: theme.colors.bgSurface1,
+    borderRadius: theme.radius.pill,
+    borderWidth: 1,
+    borderColor: theme.colors.borderDefault,
+  },
+  label: {
+    fontSize: 12,
+    fontFamily: theme.fonts.body.fontFamily,
+    color: theme.colors.textTertiary,
+  },
+});
+
+// ─── Date Separator ───────────────────────────────────────────────────────────
+
+function DateSeparator({ label }: { label: string }) {
+  return (
+    <View style={sepStyles.row}>
+      <View style={sepStyles.line} />
+      <Text style={sepStyles.label}>{label}</Text>
+      <View style={sepStyles.line} />
+    </View>
+  );
+}
+
+const sepStyles = StyleSheet.create({
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.md,
+    marginVertical: theme.spacing.md,
+  },
+  line: {
+    flex: 1,
+    height: 1,
+    backgroundColor: theme.colors.borderDefault,
+  },
+  label: {
+    fontSize: 11,
+    fontFamily: theme.fonts.mono.fontFamily,
+    color: theme.colors.textTertiary,
+    letterSpacing: 1.2,
   },
 });
 
@@ -246,9 +643,7 @@ export default function CoachScreen() {
   }, []);
 
   useEffect(() => {
-    return () => {
-      abortRef.current?.abort();
-    };
+    return () => { abortRef.current?.abort(); };
   }, []);
 
   const persistMessages = useCallback(
@@ -269,7 +664,7 @@ export default function CoachScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setError(null);
 
-    const userMsg: ChatMessage = { id: uuidv4(), role: 'user', content: trimmed };
+    const userMsg: ChatMessage = { id: uuidv4(), role: 'user', content: trimmed, timestamp: new Date() };
     setInputText('');
     setMessages((prev) => [userMsg, ...prev]);
     setIsStreaming(true);
@@ -280,14 +675,13 @@ export default function CoachScreen() {
     try {
       const googleProvider = createGoogleGenerativeAI({ apiKey });
 
-      // Build conversation history in chronological order (oldest first)
       const history: { role: 'user' | 'assistant'; content: string }[] = [
         ...messages.slice().reverse(),
         userMsg,
       ].map((m) => ({ role: m.role, content: m.content }));
 
       const result = streamText({
-        model: googleProvider('gemini-2.0-flash'),
+        model: googleProvider('gemini-2.5-flash'),
         system: buildSystemPrompt(context),
         messages: history,
         abortSignal: abortRef.current.signal,
@@ -303,12 +697,12 @@ export default function CoachScreen() {
         id: uuidv4(),
         role: 'assistant',
         content: fullText,
+        timestamp: new Date(),
       };
 
       setMessages((prev) => [assistantMsg, ...prev]);
       setStreamingMessage('');
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-
       persistMessages(userMsg, assistantMsg);
     } catch (err: unknown) {
       if (err instanceof Error && err.name === 'AbortError') return;
@@ -321,8 +715,16 @@ export default function CoachScreen() {
   }, [inputText, isStreaming, apiKey, messages, context, persistMessages]);
 
   const renderItem = useCallback(
-    ({ item }: { item: ChatMessage }) => <MessageBubble message={item} />,
-    [],
+    ({ item, index }: { item: ChatMessage; index: number }) => {
+      const isLast = index === messages.length - 1;
+      return (
+        <>
+          {isLast && <DateSeparator label="TODAY" />}
+          <MessageBubble message={item} />
+        </>
+      );
+    },
+    [messages.length],
   );
 
   const keyExtractor = useCallback((item: ChatMessage) => item.id, []);
@@ -342,10 +744,10 @@ export default function CoachScreen() {
       <SafeAreaView style={styles.safe} edges={['top']}>
         <View style={styles.header}>
           <Pressable onPress={() => router.back()} hitSlop={12} style={styles.backBtn}>
-            <Ionicons name="arrow-back" size={22} color={theme.colors.textSecondary} />
+            <Ionicons name="arrow-back" size={20} color={theme.colors.textSecondary} />
           </Pressable>
-          <Text style={styles.headerTitle}>Coach</Text>
-          <View style={{ width: 34 }} />
+          <Text style={styles.headerTitle}>COACH · V1</Text>
+          <View style={{ width: 32 }} />
         </View>
         <NoKeyBanner />
       </SafeAreaView>
@@ -357,23 +759,28 @@ export default function CoachScreen() {
       {/* Header */}
       <View style={styles.header}>
         <Pressable onPress={() => router.back()} hitSlop={12} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={22} color={theme.colors.textSecondary} />
+          <Ionicons name="arrow-back" size={20} color={theme.colors.textSecondary} />
         </Pressable>
-        <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle}>Coach</Text>
-          {contextLoading && (
-            <ActivityIndicator size="small" color={theme.colors.textTertiary} style={{ marginLeft: theme.spacing.sm }} />
-          )}
-        </View>
-        <View style={{ width: 34 }} />
+        <Text style={styles.headerTitle}>COACH · V1</Text>
+        <View style={{ width: 32 }} />
       </View>
+
+      {/* Hero title */}
+      <View style={styles.heroBlock}>
+        <Text style={styles.heroTitle}>How's the week going?</Text>
+      </View>
+
+      {/* Context chips */}
+      <ContextChips context={context} />
+
+      <View style={styles.divider} />
 
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={0}
       >
-        {/* Message list (inverted: newest at bottom) */}
+        {/* Message list */}
         <FlatList
           data={messages}
           renderItem={renderItem}
@@ -384,7 +791,7 @@ export default function CoachScreen() {
           ListHeaderComponent={
             isStreaming && streamingMessage ? (
               <MessageBubble
-                message={{ id: '__streaming__', role: 'assistant', content: streamingMessage }}
+                message={{ id: '__streaming__', role: 'assistant', content: streamingMessage, timestamp: new Date() }}
                 isStreaming
               />
             ) : isStreaming && !streamingMessage ? (
@@ -401,9 +808,8 @@ export default function CoachScreen() {
           ListEmptyComponent={
             !isStreaming ? (
               <View style={styles.emptyState}>
-                <Text style={styles.emptyTitle}>Your AI Coach</Text>
                 <Text style={styles.emptyBody}>
-                  Ask about your workouts, nutrition, recovery, or habit streaks. I have your last 4 sessions and 7-day macro history loaded.
+                  Ask about your workouts, nutrition, recovery, or habit streaks. Your last 4 sessions and 7-day macro history are loaded.
                 </Text>
               </View>
             ) : null
@@ -424,7 +830,7 @@ export default function CoachScreen() {
             style={styles.input}
             value={inputText}
             onChangeText={setInputText}
-            placeholder="Ask your coach..."
+            placeholder="Ask Coach 1..."
             placeholderTextColor={theme.colors.textTertiary}
             multiline
             maxLength={1000}
@@ -475,21 +881,32 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: theme.spacing.xxl,
-    paddingVertical: theme.spacing.lg,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.borderDefault,
+    paddingVertical: theme.spacing.md,
   },
   backBtn: {
     padding: theme.spacing.xs,
-  },
-  headerCenter: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    width: 32,
   },
   headerTitle: {
-    fontSize: 20,
+    fontSize: 12,
+    fontFamily: theme.fonts.mono.fontFamily,
+    color: theme.colors.textTertiary,
+    letterSpacing: 1.5,
+  },
+  heroBlock: {
+    paddingHorizontal: theme.spacing.xxl,
+    paddingTop: theme.spacing.sm,
+    paddingBottom: theme.spacing.lg,
+  },
+  heroTitle: {
+    fontSize: 28,
     fontFamily: theme.fonts.display.fontFamily,
     color: theme.colors.textPrimary,
+    lineHeight: 36,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: theme.colors.borderDefault,
   },
   listContent: {
     paddingHorizontal: theme.spacing.xxl,
@@ -527,18 +944,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: theme.spacing.xxxl,
     paddingTop: theme.spacing.huge,
-    gap: theme.spacing.md,
-  },
-  emptyTitle: {
-    fontSize: 20,
-    fontFamily: theme.fonts.display.fontFamily,
-    color: theme.colors.textPrimary,
-    textAlign: 'center',
   },
   emptyBody: {
     fontSize: 14,
     fontFamily: theme.fonts.body.fontFamily,
-    color: theme.colors.textSecondary,
+    color: theme.colors.textTertiary,
     textAlign: 'center',
     lineHeight: 21,
   },

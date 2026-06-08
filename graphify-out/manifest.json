@@ -1,0 +1,422 @@
+{
+  "/Users/mananmodi/Documents/03_vscode/MananOS/.vscode/extensions.json": {
+    "mtime": 1779955050.8851626,
+    "ast_hash": "b2354ba0225f5689d13651ec0fac0de0",
+    "semantic_hash": "b2354ba0225f5689d13651ec0fac0de0"
+  },
+  "/Users/mananmodi/Documents/03_vscode/MananOS/.vscode/settings.json": {
+    "mtime": 1780393635.5579357,
+    "ast_hash": "8140a8c56c8af04db61759d0c10862ae",
+    "semantic_hash": "8140a8c56c8af04db61759d0c10862ae"
+  },
+  "/Users/mananmodi/Documents/03_vscode/MananOS/app.json": {
+    "mtime": 1780046406.669645,
+    "ast_hash": "d454d3a0e6b05d2ae8ad31e5b6f94d1f",
+    "semantic_hash": "d454d3a0e6b05d2ae8ad31e5b6f94d1f"
+  },
+  "/Users/mananmodi/Documents/03_vscode/MananOS/babel.config.js": {
+    "mtime": 1779956303.2945075,
+    "ast_hash": "05b06ed3f7c1992f5c319b5f61f67c54",
+    "semantic_hash": "05b06ed3f7c1992f5c319b5f61f67c54"
+  },
+  "/Users/mananmodi/Documents/03_vscode/MananOS/docs/05-relational-schema.sql": {
+    "mtime": 1780310713.1198738,
+    "ast_hash": "bad8d2c16327180a9bac55f9c5e9b4e1",
+    "semantic_hash": "bad8d2c16327180a9bac55f9c5e9b4e1"
+  },
+  "/Users/mananmodi/Documents/03_vscode/MananOS/eslint.config.js": {
+    "mtime": 1779956550.9450648,
+    "ast_hash": "b713dd66aa3ad59ed5098d7b9f8dc202",
+    "semantic_hash": "b713dd66aa3ad59ed5098d7b9f8dc202"
+  },
+  "/Users/mananmodi/Documents/03_vscode/MananOS/expo-env.d.ts": {
+    "mtime": 1780394070.5020897,
+    "ast_hash": "0dd9dccdb4b08595bc83df70d6a154d3",
+    "semantic_hash": "0dd9dccdb4b08595bc83df70d6a154d3"
+  },
+  "/Users/mananmodi/Documents/03_vscode/MananOS/package.json": {
+    "mtime": 1780395118.3328252,
+    "ast_hash": "bf920edcd2ff5943b812f18f63d2a1be",
+    "semantic_hash": "bf920edcd2ff5943b812f18f63d2a1be"
+  },
+  "/Users/mananmodi/Documents/03_vscode/MananOS/src/app/(auth)/_layout.tsx": {
+    "mtime": 1780038169.096137,
+    "ast_hash": "b62a67e87654b73ac72fc44d962807c5",
+    "semantic_hash": "b62a67e87654b73ac72fc44d962807c5"
+  },
+  "/Users/mananmodi/Documents/03_vscode/MananOS/src/app/(auth)/sign-in.tsx": {
+    "mtime": 1780038176.9654996,
+    "ast_hash": "62934ad31b34cbd5095e9e6fe76799a7",
+    "semantic_hash": "62934ad31b34cbd5095e9e6fe76799a7"
+  },
+  "/Users/mananmodi/Documents/03_vscode/MananOS/src/app/(auth)/sign-up.tsx": {
+    "mtime": 1780038188.6676261,
+    "ast_hash": "94e06848bfe9408946362209574d21a1",
+    "semantic_hash": "94e06848bfe9408946362209574d21a1"
+  },
+  "/Users/mananmodi/Documents/03_vscode/MananOS/src/app/(modals)/_layout.tsx": {
+    "mtime": 1779966130.7962346,
+    "ast_hash": "065701bcd726723c817c996a1d78e8aa",
+    "semantic_hash": "065701bcd726723c817c996a1d78e8aa"
+  },
+  "/Users/mananmodi/Documents/03_vscode/MananOS/src/app/(modals)/create-habit.tsx": {
+    "mtime": 1780311129.9322703,
+    "ast_hash": "c6d3060907e227954a579149e4719110",
+    "semantic_hash": "c6d3060907e227954a579149e4719110"
+  },
+  "/Users/mananmodi/Documents/03_vscode/MananOS/src/app/(modals)/exercise-search.tsx": {
+    "mtime": 1780046607.572036,
+    "ast_hash": "829facae5176ea6c4dc278243bfa3463",
+    "semantic_hash": "829facae5176ea6c4dc278243bfa3463"
+  },
+  "/Users/mananmodi/Documents/03_vscode/MananOS/src/app/(modals)/settings.tsx": {
+    "mtime": 1780393896.0556972,
+    "ast_hash": "014c175ca8644e85681e4d8f2c4a6220",
+    "semantic_hash": "014c175ca8644e85681e4d8f2c4a6220"
+  },
+  "/Users/mananmodi/Documents/03_vscode/MananOS/src/app/(tabs)/_layout.tsx": {
+    "mtime": 1780396504.8054447,
+    "ast_hash": "9ee87e92a7226c93c104a150a2b20324",
+    "semantic_hash": "9ee87e92a7226c93c104a150a2b20324"
+  },
+  "/Users/mananmodi/Documents/03_vscode/MananOS/src/app/(tabs)/habits/[habitId].tsx": {
+    "mtime": 1780389245.9596171,
+    "ast_hash": "10082debed40dd416f2669b413a53067",
+    "semantic_hash": "10082debed40dd416f2669b413a53067"
+  },
+  "/Users/mananmodi/Documents/03_vscode/MananOS/src/app/(tabs)/habits/_layout.tsx": {
+    "mtime": 1779966541.1984847,
+    "ast_hash": "cb9438f6af1e046634eb645287c0815e",
+    "semantic_hash": "cb9438f6af1e046634eb645287c0815e"
+  },
+  "/Users/mananmodi/Documents/03_vscode/MananOS/src/app/(tabs)/habits/index.tsx": {
+    "mtime": 1780389370.9255834,
+    "ast_hash": "8b1a223bbe7c66ab2ec2b64bbd7ce66b",
+    "semantic_hash": "8b1a223bbe7c66ab2ec2b64bbd7ce66b"
+  },
+  "/Users/mananmodi/Documents/03_vscode/MananOS/src/app/(tabs)/index.tsx": {
+    "mtime": 1780395744.7760594,
+    "ast_hash": "3961e769b2d6933c30c12e6448f85d5b",
+    "semantic_hash": "3961e769b2d6933c30c12e6448f85d5b"
+  },
+  "/Users/mananmodi/Documents/03_vscode/MananOS/src/app/(tabs)/nutrition/_layout.tsx": {
+    "mtime": 1779966540.0157492,
+    "ast_hash": "c506c06bbe4919081c4c49da8bedc4a9",
+    "semantic_hash": "c506c06bbe4919081c4c49da8bedc4a9"
+  },
+  "/Users/mananmodi/Documents/03_vscode/MananOS/src/app/(tabs)/nutrition/history.tsx": {
+    "mtime": 1780396293.4852278,
+    "ast_hash": "b3e63612bfc31d7bbf84ce613fc5c93f",
+    "semantic_hash": "b3e63612bfc31d7bbf84ce613fc5c93f"
+  },
+  "/Users/mananmodi/Documents/03_vscode/MananOS/src/app/(tabs)/nutrition/index.tsx": {
+    "mtime": 1780396713.9117565,
+    "ast_hash": "cdd1669ee4b06e0111120ded4bc06737",
+    "semantic_hash": "cdd1669ee4b06e0111120ded4bc06737"
+  },
+  "/Users/mananmodi/Documents/03_vscode/MananOS/src/app/(tabs)/today/coach.tsx": {
+    "mtime": 1780396019.0248494,
+    "ast_hash": "b7f357d76b1c030fb270fc199695f8c5",
+    "semantic_hash": "b7f357d76b1c030fb270fc199695f8c5"
+  },
+  "/Users/mananmodi/Documents/03_vscode/MananOS/src/app/(tabs)/workouts/_layout.tsx": {
+    "mtime": 1780046723.286589,
+    "ast_hash": "e3791883e43b569c3c7735f6476fd388",
+    "semantic_hash": "e3791883e43b569c3c7735f6476fd388"
+  },
+  "/Users/mananmodi/Documents/03_vscode/MananOS/src/app/(tabs)/workouts/active.tsx": {
+    "mtime": 1780049742.309824,
+    "ast_hash": "8b20647f496d3e78c0284c1c40a3a225",
+    "semantic_hash": "8b20647f496d3e78c0284c1c40a3a225"
+  },
+  "/Users/mananmodi/Documents/03_vscode/MananOS/src/app/(tabs)/workouts/index.tsx": {
+    "mtime": 1780047258.682216,
+    "ast_hash": "2328ab9b80df92607e445b7e1cd0f4e9",
+    "semantic_hash": "2328ab9b80df92607e445b7e1cd0f4e9"
+  },
+  "/Users/mananmodi/Documents/03_vscode/MananOS/src/app/(tabs)/workouts/summary.tsx": {
+    "mtime": 1780050073.5359058,
+    "ast_hash": "5898e8ce3a4e8b186d0afdc2f76d19ce",
+    "semantic_hash": "5898e8ce3a4e8b186d0afdc2f76d19ce"
+  },
+  "/Users/mananmodi/Documents/03_vscode/MananOS/src/app/_layout.tsx": {
+    "mtime": 1780050295.6718316,
+    "ast_hash": "ef2ef34fa81903b81daf2467006d80b3",
+    "semantic_hash": "ef2ef34fa81903b81daf2467006d80b3"
+  },
+  "/Users/mananmodi/Documents/03_vscode/MananOS/src/app/index.tsx": {
+    "mtime": 1780038196.8718612,
+    "ast_hash": "a131b97d0fc30c4294480c0dcaa2a46e",
+    "semantic_hash": "a131b97d0fc30c4294480c0dcaa2a46e"
+  },
+  "/Users/mananmodi/Documents/03_vscode/MananOS/src/components/ActivityRings.tsx": {
+    "mtime": 1780301256.618539,
+    "ast_hash": "e1f0d4f92dd020df753783f31e1aa897",
+    "semantic_hash": "e1f0d4f92dd020df753783f31e1aa897"
+  },
+  "/Users/mananmodi/Documents/03_vscode/MananOS/src/components/HabitContributionGrid.tsx": {
+    "mtime": 1780389330.4109228,
+    "ast_hash": "1c2fdfe65040a6522dca8fd23ee1cf46",
+    "semantic_hash": "1c2fdfe65040a6522dca8fd23ee1cf46"
+  },
+  "/Users/mananmodi/Documents/03_vscode/MananOS/src/components/PRBanner.tsx": {
+    "mtime": 1780049647.8367898,
+    "ast_hash": "5d1dfa8fb9eae5148c0466ea31ed8205",
+    "semantic_hash": "5d1dfa8fb9eae5148c0466ea31ed8205"
+  },
+  "/Users/mananmodi/Documents/03_vscode/MananOS/src/components/RestTimerOverlay.tsx": {
+    "mtime": 1780048167.1064012,
+    "ast_hash": "a3832cdb9c6d2210f8b18e6d8f4d4e00",
+    "semantic_hash": "a3832cdb9c6d2210f8b18e6d8f4d4e00"
+  },
+  "/Users/mananmodi/Documents/03_vscode/MananOS/src/constants/theme.ts": {
+    "mtime": 1779955050.8935466,
+    "ast_hash": "9507bd7aa3ee042af2ad8a99ebbaa8b6",
+    "semantic_hash": "9507bd7aa3ee042af2ad8a99ebbaa8b6"
+  },
+  "/Users/mananmodi/Documents/03_vscode/MananOS/src/data/exerciseSeed.ts": {
+    "mtime": 1780038438.3708599,
+    "ast_hash": "5736c96a10f8bfa25910b4e993bc98fb",
+    "semantic_hash": "5736c96a10f8bfa25910b4e993bc98fb"
+  },
+  "/Users/mananmodi/Documents/03_vscode/MananOS/src/data/mockSeed.ts": {
+    "mtime": 1779967928.6557362,
+    "ast_hash": "60c691728c07fba5f01f1e0d5868dce8",
+    "semantic_hash": "60c691728c07fba5f01f1e0d5868dce8"
+  },
+  "/Users/mananmodi/Documents/03_vscode/MananOS/src/hooks/use-color-scheme.ts": {
+    "mtime": 1779955050.8936763,
+    "ast_hash": "6f3444fcb9c7013a839a7832be518831",
+    "semantic_hash": "6f3444fcb9c7013a839a7832be518831"
+  },
+  "/Users/mananmodi/Documents/03_vscode/MananOS/src/hooks/use-color-scheme.web.ts": {
+    "mtime": 1779955050.893761,
+    "ast_hash": "071fbb9a1a05ffb8af4b7d3b1ffa72d6",
+    "semantic_hash": "071fbb9a1a05ffb8af4b7d3b1ffa72d6"
+  },
+  "/Users/mananmodi/Documents/03_vscode/MananOS/src/hooks/use-theme.ts": {
+    "mtime": 1779955050.893845,
+    "ast_hash": "e058af4f5801bcaa97dad62f12085a27",
+    "semantic_hash": "e058af4f5801bcaa97dad62f12085a27"
+  },
+  "/Users/mananmodi/Documents/03_vscode/MananOS/src/hooks/useAllHabitsCompletions.ts": {
+    "mtime": 1780389269.8489194,
+    "ast_hash": "5426423d152fbd3ea40ab7f734f9c82f",
+    "semantic_hash": "5426423d152fbd3ea40ab7f734f9c82f"
+  },
+  "/Users/mananmodi/Documents/03_vscode/MananOS/src/hooks/useApiKeys.ts": {
+    "mtime": 1780393811.568311,
+    "ast_hash": "74889241614113868509957521029fcc",
+    "semantic_hash": "74889241614113868509957521029fcc"
+  },
+  "/Users/mananmodi/Documents/03_vscode/MananOS/src/hooks/useCoach2Parse.ts": {
+    "mtime": 1780396677.5168672,
+    "ast_hash": "9a91fcaebea261a36fd1410f6174c327",
+    "semantic_hash": "9a91fcaebea261a36fd1410f6174c327"
+  },
+  "/Users/mananmodi/Documents/03_vscode/MananOS/src/hooks/useCoachContext.ts": {
+    "mtime": 1780395769.864241,
+    "ast_hash": "40f0503a04668f50ae5a1249bbf4a5c3",
+    "semantic_hash": "40f0503a04668f50ae5a1249bbf4a5c3"
+  },
+  "/Users/mananmodi/Documents/03_vscode/MananOS/src/hooks/useCreateHabit.ts": {
+    "mtime": 1780389291.539532,
+    "ast_hash": "a77b125a798e0a4314d9a0acc5871b29",
+    "semantic_hash": "a77b125a798e0a4314d9a0acc5871b29"
+  },
+  "/Users/mananmodi/Documents/03_vscode/MananOS/src/hooks/useDeleteMealItem.ts": {
+    "mtime": 1780392572.360959,
+    "ast_hash": "3af42f5b7608f7192ce52842018e3a7b",
+    "semantic_hash": "3af42f5b7608f7192ce52842018e3a7b"
+  },
+  "/Users/mananmodi/Documents/03_vscode/MananOS/src/hooks/useExerciseSearch.ts": {
+    "mtime": 1780038463.826089,
+    "ast_hash": "834fddf9bf27bbbc3d7958dcdb82ec5e",
+    "semantic_hash": "834fddf9bf27bbbc3d7958dcdb82ec5e"
+  },
+  "/Users/mananmodi/Documents/03_vscode/MananOS/src/hooks/useExercises.ts": {
+    "mtime": 1780038732.8428943,
+    "ast_hash": "b4649d753f514b13431cb374bd507ec1",
+    "semantic_hash": "b4649d753f514b13431cb374bd507ec1"
+  },
+  "/Users/mananmodi/Documents/03_vscode/MananOS/src/hooks/useFinishWorkout.ts": {
+    "mtime": 1780389301.1895456,
+    "ast_hash": "bef23abfacde5d5332b9c319d5b43efd",
+    "semantic_hash": "bef23abfacde5d5332b9c319d5b43efd"
+  },
+  "/Users/mananmodi/Documents/03_vscode/MananOS/src/hooks/useFontLoader.ts": {
+    "mtime": 1779963977.009884,
+    "ast_hash": "2f9484a1d5628ab7890ebf8848ca794e",
+    "semantic_hash": "2f9484a1d5628ab7890ebf8848ca794e"
+  },
+  "/Users/mananmodi/Documents/03_vscode/MananOS/src/hooks/useHabitHistory.ts": {
+    "mtime": 1780389262.8074174,
+    "ast_hash": "59b7324dd9d585904ff1ddeb6e767857",
+    "semantic_hash": "59b7324dd9d585904ff1ddeb6e767857"
+  },
+  "/Users/mananmodi/Documents/03_vscode/MananOS/src/hooks/useLogHabitCompletion.ts": {
+    "mtime": 1780389399.701538,
+    "ast_hash": "3afb877b741d1f39ba1c098efe8531ea",
+    "semantic_hash": "3afb877b741d1f39ba1c098efe8531ea"
+  },
+  "/Users/mananmodi/Documents/03_vscode/MananOS/src/hooks/useLogMealFromCoach.ts": {
+    "mtime": 1780392553.8528457,
+    "ast_hash": "74f68b7aaecfea659605e3098132c86b",
+    "semantic_hash": "74f68b7aaecfea659605e3098132c86b"
+  },
+  "/Users/mananmodi/Documents/03_vscode/MananOS/src/hooks/useNutritionHistory.ts": {
+    "mtime": 1780391955.4764922,
+    "ast_hash": "405a149f25e16a5513c1107bda93ea46",
+    "semantic_hash": "405a149f25e16a5513c1107bda93ea46"
+  },
+  "/Users/mananmodi/Documents/03_vscode/MananOS/src/hooks/useNutritionToday.ts": {
+    "mtime": 1780390155.8199477,
+    "ast_hash": "d4f8cd8ad7aa4d2a503c707883f600b3",
+    "semantic_hash": "d4f8cd8ad7aa4d2a503c707883f600b3"
+  },
+  "/Users/mananmodi/Documents/03_vscode/MananOS/src/hooks/usePRDetection.ts": {
+    "mtime": 1780311129.9327047,
+    "ast_hash": "793887addb5de06156bfed4ded4491e1",
+    "semantic_hash": "793887addb5de06156bfed4ded4491e1"
+  },
+  "/Users/mananmodi/Documents/03_vscode/MananOS/src/hooks/useRestTimer.ts": {
+    "mtime": 1780048147.3405857,
+    "ast_hash": "3c8e44dd5f6d62089bcb4b515a108eeb",
+    "semantic_hash": "3c8e44dd5f6d62089bcb4b515a108eeb"
+  },
+  "/Users/mananmodi/Documents/03_vscode/MananOS/src/hooks/useTodayHabits.ts": {
+    "mtime": 1780389185.4129145,
+    "ast_hash": "7530b89458dedc414b72eec9ceab03a5",
+    "semantic_hash": "7530b89458dedc414b72eec9ceab03a5"
+  },
+  "/Users/mananmodi/Documents/03_vscode/MananOS/src/hooks/useTodayRings.ts": {
+    "mtime": 1780300555.6321473,
+    "ast_hash": "beec1fb34fda4403f8d995c41d358802",
+    "semantic_hash": "beec1fb34fda4403f8d995c41d358802"
+  },
+  "/Users/mananmodi/Documents/03_vscode/MananOS/src/hooks/useTodayWorkout.ts": {
+    "mtime": 1780300576.9681497,
+    "ast_hash": "4036772439d7b0835356f7a0421f9fa1",
+    "semantic_hash": "4036772439d7b0835356f7a0421f9fa1"
+  },
+  "/Users/mananmodi/Documents/03_vscode/MananOS/src/hooks/useWaterQuickAdd.ts": {
+    "mtime": 1780389215.4417038,
+    "ast_hash": "4934e0d4a60258953829310d137c2450",
+    "semantic_hash": "4934e0d4a60258953829310d137c2450"
+  },
+  "/Users/mananmodi/Documents/03_vscode/MananOS/src/hooks/useWorkoutSessions.ts": {
+    "mtime": 1780047225.070555,
+    "ast_hash": "8346cfc6f4e1e5053d4e0f9eb1c53517",
+    "semantic_hash": "8346cfc6f4e1e5053d4e0f9eb1c53517"
+  },
+  "/Users/mananmodi/Documents/03_vscode/MananOS/src/lib/generateId.ts": {
+    "mtime": 1780311055.203687,
+    "ast_hash": "2315c900468ad5eed9adb268aa205fa4",
+    "semantic_hash": "2315c900468ad5eed9adb268aa205fa4"
+  },
+  "/Users/mananmodi/Documents/03_vscode/MananOS/src/lib/habitUtils.ts": {
+    "mtime": 1780389172.1546082,
+    "ast_hash": "b572bcad5f967874a3d636ca199784f6",
+    "semantic_hash": "b572bcad5f967874a3d636ca199784f6"
+  },
+  "/Users/mananmodi/Documents/03_vscode/MananOS/src/lib/mmkv.ts": {
+    "mtime": 1779968160.8378837,
+    "ast_hash": "bee89a641926cdc0630eaa8b71ea7e1b",
+    "semantic_hash": "bee89a641926cdc0630eaa8b71ea7e1b"
+  },
+  "/Users/mananmodi/Documents/03_vscode/MananOS/src/lib/netUtils.ts": {
+    "mtime": 1780389280.7730422,
+    "ast_hash": "38e04efcae1c06266d246fcf8ace3e9c",
+    "semantic_hash": "38e04efcae1c06266d246fcf8ace3e9c"
+  },
+  "/Users/mananmodi/Documents/03_vscode/MananOS/src/lib/nutritionMockParser.ts": {
+    "mtime": 1780390326.743357,
+    "ast_hash": "d0a3cd816e7eaa55b0967150cb21a9a0",
+    "semantic_hash": "d0a3cd816e7eaa55b0967150cb21a9a0"
+  },
+  "/Users/mananmodi/Documents/03_vscode/MananOS/src/lib/nutritionUtils.ts": {
+    "mtime": 1780392514.9324253,
+    "ast_hash": "ee8c91b92b60f052739902f78d45a694",
+    "semantic_hash": "ee8c91b92b60f052739902f78d45a694"
+  },
+  "/Users/mananmodi/Documents/03_vscode/MananOS/src/lib/polyfills.ts": {
+    "mtime": 1779952880.5417607,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "/Users/mananmodi/Documents/03_vscode/MananOS/src/lib/supabaseClient.ts": {
+    "mtime": 1779968164.906451,
+    "ast_hash": "d6cd87450ae3812986898077259439db",
+    "semantic_hash": "d6cd87450ae3812986898077259439db"
+  },
+  "/Users/mananmodi/Documents/03_vscode/MananOS/src/lib/theme.ts": {
+    "mtime": 1779964038.8571532,
+    "ast_hash": "3f6940ad8dfc538984cab7e04d7000e9",
+    "semantic_hash": "3f6940ad8dfc538984cab7e04d7000e9"
+  },
+  "/Users/mananmodi/Documents/03_vscode/MananOS/src/store/authStore.ts": {
+    "mtime": 1780037362.4909365,
+    "ast_hash": "2c58761ffd59667e8c22c3fe3cafa60f",
+    "semantic_hash": "2c58761ffd59667e8c22c3fe3cafa60f"
+  },
+  "/Users/mananmodi/Documents/03_vscode/MananOS/src/store/sessionStore.ts": {
+    "mtime": 1780311129.9343836,
+    "ast_hash": "68da7463e3366862e1ee44264eb75f88",
+    "semantic_hash": "68da7463e3366862e1ee44264eb75f88"
+  },
+  "/Users/mananmodi/Documents/03_vscode/MananOS/src/types/app.types.ts": {
+    "mtime": 1779952588.454651,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "/Users/mananmodi/Documents/03_vscode/MananOS/tsconfig.json": {
+    "mtime": 1779955050.8858528,
+    "ast_hash": "6794be22dd9dd00003515895d3b4ff06",
+    "semantic_hash": "6794be22dd9dd00003515895d3b4ff06"
+  },
+  "/Users/mananmodi/Documents/03_vscode/MananOS/FONTS_SETUP.md": {
+    "mtime": 1779963996.0807176,
+    "ast_hash": "d29919902e273b4e7f2e36f70c22093c",
+    "semantic_hash": "d29919902e273b4e7f2e36f70c22093c"
+  },
+  "/Users/mananmodi/Documents/03_vscode/MananOS/PHASE_0.2_COMPLETE.md": {
+    "mtime": 1779964061.1303234,
+    "ast_hash": "1a4e8c9667a9aedd2ad05fb0291fb9ab",
+    "semantic_hash": "1a4e8c9667a9aedd2ad05fb0291fb9ab"
+  },
+  "/Users/mananmodi/Documents/03_vscode/MananOS/docs/01-prd.md": {
+    "mtime": 1779951719.8686543,
+    "ast_hash": "e7e3b2d3b8425538518f050846539dd6",
+    "semantic_hash": "e7e3b2d3b8425538518f050846539dd6"
+  },
+  "/Users/mananmodi/Documents/03_vscode/MananOS/docs/02-trd.md": {
+    "mtime": 1779951717.8698163,
+    "ast_hash": "79e74d324184ab3ee8c20ed94384652e",
+    "semantic_hash": "79e74d324184ab3ee8c20ed94384652e"
+  },
+  "/Users/mananmodi/Documents/03_vscode/MananOS/docs/03-ui-ux-architecture.md": {
+    "mtime": 1779951716.35163,
+    "ast_hash": "85cfa8cff4a99095cf042c9ac088276c",
+    "semantic_hash": "85cfa8cff4a99095cf042c9ac088276c"
+  },
+  "/Users/mananmodi/Documents/03_vscode/MananOS/docs/04-navigation-map.md": {
+    "mtime": 1779951714.8435392,
+    "ast_hash": "9a03893a7d30871fd896bdd005909158",
+    "semantic_hash": "9a03893a7d30871fd896bdd005909158"
+  },
+  "/Users/mananmodi/Documents/03_vscode/MananOS/docs/05-relational-schema.md": {
+    "mtime": 1779951713.222053,
+    "ast_hash": "d888c947ad4ee8ac905ff9c2892e09b8",
+    "semantic_hash": "d888c947ad4ee8ac905ff9c2892e09b8"
+  },
+  "/Users/mananmodi/Documents/03_vscode/MananOS/docs/06-implementation-plan.md": {
+    "mtime": 1780395226.6388009,
+    "ast_hash": "4862161aeb6bc2797d234fbd0273d934",
+    "semantic_hash": "4862161aeb6bc2797d234fbd0273d934"
+  },
+  "/Users/mananmodi/Documents/03_vscode/MananOS/docs/gotchas.md": {
+    "mtime": 1779954406.2470248,
+    "ast_hash": "2846f840e34dd8cbd2ae0ea28829b705",
+    "semantic_hash": "2846f840e34dd8cbd2ae0ea28829b705"
+  }
+}

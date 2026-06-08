@@ -126,12 +126,16 @@ const styles = StyleSheet.create({
     gap: theme.spacing.md,
   },
   sheetTitle: {
-    ...theme.typography.sectionTitle,
+    fontSize: 20,
+    fontFamily: theme.fonts.display.fontFamily,
     color: theme.colors.textPrimary,
+    lineHeight: 28,
   },
   sheetBody: {
-    ...theme.typography.bodyCore,
+    fontSize: 15,
+    fontFamily: theme.fonts.body.fontFamily,
     color: theme.colors.textSecondary,
+    lineHeight: 22,
   },
   resumeBtn: {
     backgroundColor: theme.colors.accentPrimary,
@@ -140,7 +144,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   resumeLabel: {
-    ...theme.typography.bodyBold,
+    fontSize: 15,
+    fontFamily: theme.fonts.bodyBold.fontFamily,
     color: theme.colors.bgCanvas,
   },
   discardBtn: {
@@ -149,7 +154,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   discardLabel: {
-    ...theme.typography.bodyCore,
+    fontSize: 15,
+    fontFamily: theme.fonts.body.fontFamily,
     color: theme.colors.textSecondary,
   },
 });
