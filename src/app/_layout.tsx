@@ -17,8 +17,25 @@ import { theme } from '@/lib/theme';
 import { tanstackMMKVStorage } from '@/lib/mmkv';
 import { useAuthStore } from '@/store/authStore';
 import { useSessionStore } from '@/store/sessionStore';
+import * as Notifications from 'expo-notifications';
+import { useReconcileNotifications } from '@/hooks/useReconcileNotifications';
+
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
+    shouldPlaySound: false,
+    shouldSetBadge: false,
+  }),
+});
 
 SplashScreen.preventAutoHideAsync();
+
+function NotificationReconciler() {
+  useReconcileNotifications();
+  return null;
+}
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { gcTime: 1000 * 60 * 60 * 24 } },
@@ -81,6 +98,7 @@ export default function RootLayout() {
 
   return (
     <PersistQueryClientProvider client={queryClient} persistOptions={{ persister: mmkvPersister }}>
+      <NotificationReconciler />
       <StatusBar style="light" />
 
       <Modal visible={showResumeModal} transparent animationType="fade" statusBarTranslucent>

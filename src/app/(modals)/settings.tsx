@@ -5,6 +5,7 @@ import {
   TextInput,
   StyleSheet,
   Pressable,
+  Switch,
   ScrollView,
   ActivityIndicator,
   Animated,
@@ -13,6 +14,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useApiKeys } from '@/hooks/useApiKeys';
+import { useNotifPrefs } from '@/hooks/useNotifPrefs';
+import { useNotificationPermissions } from '@/hooks/useNotificationPermissions';
 import { theme } from '@/lib/theme';
 
 type SaveState = 'idle' | 'saved' | 'error';
@@ -20,6 +23,8 @@ type SaveState = 'idle' | 'saved' | 'error';
 export default function SettingsModal() {
   const { openaiKey, setOpenaiKey, geminiKey, setGeminiKey, loaded, saving, save, clearAll } =
     useApiKeys();
+  const { prefs, updatePrefs } = useNotifPrefs();
+  const { granted, checked, request } = useNotificationPermissions();
 
   const [showOpenai, setShowOpenai] = useState(false);
   const [showGemini, setShowGemini] = useState(false);
@@ -147,6 +152,122 @@ export default function SettingsModal() {
           </View>
         </View>
 
+        {/* Notifications Section */}
+        <Text style={[styles.sectionLabel, { marginTop: theme.spacing.xxl }]}>Notifications</Text>
+        <Text style={styles.sectionCaption}>
+          Reminders fire locally on-device. No internet required.
+        </Text>
+
+        {checked && !granted && (
+          <Pressable
+            style={styles.permissionBanner}
+            onPress={async () => {
+              const result = await request();
+              if (result.granted) {
+                updatePrefs({ push_token: result.token });
+              }
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            }}
+          >
+            <Ionicons name="notifications-off-outline" size={16} color={theme.colors.warning} />
+            <Text style={styles.permissionBannerText}>
+              Tap to grant notification permission
+            </Text>
+          </Pressable>
+        )}
+
+        {/* Water Reminders */}
+        <View style={styles.toggleRow}>
+          <View style={styles.toggleLabel}>
+            <Text style={styles.fieldLabel}>Water Reminders</Text>
+            <Text style={styles.fieldCaption}>
+              Every {prefs.water_interval_hours}h · {prefs.water_start_hour}:00–{prefs.water_end_hour}:00
+            </Text>
+          </View>
+          <Switch
+            value={prefs.water_enabled}
+            disabled={!granted}
+            onValueChange={(v) => {
+              updatePrefs({ water_enabled: v });
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            }}
+            trackColor={{ false: theme.colors.borderStrong, true: theme.colors.ringWater }}
+            thumbColor={theme.colors.textPrimary}
+          />
+        </View>
+
+        {prefs.water_enabled && granted && (
+          <View style={styles.configPanel}>
+            <Text style={styles.configLabel}>Interval</Text>
+            <View style={styles.chipRow}>
+              {([1, 2, 3, 4] as const).map((h) => (
+                <Pressable
+                  key={h}
+                  style={[styles.chip, prefs.water_interval_hours === h && styles.chipActive]}
+                  onPress={() => {
+                    updatePrefs({ water_interval_hours: h });
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  }}
+                >
+                  <Text style={[styles.chipLabel, prefs.water_interval_hours === h && styles.chipLabelActive]}>
+                    {h}h
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+
+            <Text style={[styles.configLabel, { marginTop: theme.spacing.md }]}>Window</Text>
+            <View style={styles.stepperGroup}>
+              <StepperRow
+                label="From"
+                value={`${prefs.water_start_hour}:00`}
+                onDecrement={() => {
+                  const next = Math.max(0, prefs.water_start_hour - 1);
+                  if (next < prefs.water_end_hour) updatePrefs({ water_start_hour: next });
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                }}
+                onIncrement={() => {
+                  const next = prefs.water_start_hour + 1;
+                  if (next < prefs.water_end_hour) updatePrefs({ water_start_hour: next });
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                }}
+              />
+              <StepperRow
+                label="Until"
+                value={`${prefs.water_end_hour}:00`}
+                onDecrement={() => {
+                  const next = prefs.water_end_hour - 1;
+                  if (next > prefs.water_start_hour) updatePrefs({ water_end_hour: next });
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                }}
+                onIncrement={() => {
+                  const next = Math.min(23, prefs.water_end_hour + 1);
+                  updatePrefs({ water_end_hour: next });
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                }}
+              />
+            </View>
+          </View>
+        )}
+
+        {/* Habit Reminder */}
+        <View style={styles.toggleRow}>
+          <View style={styles.toggleLabel}>
+            <Text style={styles.fieldLabel}>Habit Reminder</Text>
+            <Text style={styles.fieldCaption}>Daily at {prefs.habits_reminder_hour}:00</Text>
+          </View>
+          <Switch
+            value={prefs.habits_enabled}
+            disabled={!granted}
+            onValueChange={(v) => {
+              updatePrefs({ habits_enabled: v });
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            }}
+            trackColor={{ false: theme.colors.borderStrong, true: theme.colors.accentPrimary }}
+            thumbColor={theme.colors.textPrimary}
+          />
+        </View>
+
         {/* Actions */}
         <View style={styles.actions}>
           <Animated.View style={[styles.saveButtonWrapper, { transform: [{ scale: saveScale }] }]}>
@@ -187,6 +308,69 @@ export default function SettingsModal() {
     </SafeAreaView>
   );
 }
+
+function StepperRow({
+  label,
+  value,
+  onDecrement,
+  onIncrement,
+}: {
+  label: string;
+  value: string;
+  onDecrement: () => void;
+  onIncrement: () => void;
+}) {
+  return (
+    <View style={stepperStyles.row}>
+      <Text style={stepperStyles.label}>{label}</Text>
+      <View style={stepperStyles.controls}>
+        <Pressable onPress={onDecrement} style={stepperStyles.btn} hitSlop={8}>
+          <Ionicons name="remove" size={14} color={theme.colors.textSecondary} />
+        </Pressable>
+        <Text style={stepperStyles.value}>{value}</Text>
+        <Pressable onPress={onIncrement} style={stepperStyles.btn} hitSlop={8}>
+          <Ionicons name="add" size={14} color={theme.colors.textSecondary} />
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
+const stepperStyles = StyleSheet.create({
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: theme.spacing.sm,
+  },
+  label: {
+    fontSize: 13,
+    fontFamily: theme.fonts.body.fontFamily,
+    color: theme.colors.textSecondary,
+  },
+  controls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.md,
+  },
+  btn: {
+    width: 28,
+    height: 28,
+    borderRadius: theme.radius.button,
+    backgroundColor: theme.colors.bgSurface3,
+    borderWidth: 1,
+    borderColor: theme.colors.borderStrong,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  value: {
+    fontSize: 14,
+    fontFamily: theme.fonts.mono.fontFamily,
+    color: theme.colors.textPrimary,
+    minWidth: 44,
+    textAlign: 'center',
+  },
+});
 
 function StatusDot({ active, label }: { active: boolean; label: string }) {
   return (
@@ -351,5 +535,77 @@ const styles = StyleSheet.create({
   statusRow: {
     flexDirection: 'row',
     gap: theme.spacing.xl,
+  },
+  configPanel: {
+    backgroundColor: theme.colors.bgSurface3,
+    borderRadius: theme.radius.card,
+    padding: theme.spacing.lg,
+    marginBottom: theme.spacing.md,
+    borderWidth: 1,
+    borderColor: theme.colors.borderDefault,
+  },
+  configLabel: {
+    fontSize: 11,
+    fontFamily: theme.fonts.bodyBold.fontFamily,
+    color: theme.colors.textTertiary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+    marginBottom: theme.spacing.sm,
+  },
+  chipRow: {
+    flexDirection: 'row',
+    gap: theme.spacing.sm,
+  },
+  chip: {
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.xs,
+    borderRadius: theme.radius.pill,
+    borderWidth: 1,
+    borderColor: theme.colors.borderStrong,
+    backgroundColor: theme.colors.bgSurface2,
+  },
+  chipActive: {
+    borderColor: theme.colors.ringWater,
+    backgroundColor: 'rgba(106, 140, 175, 0.15)',
+  },
+  chipLabel: {
+    fontSize: 13,
+    fontFamily: theme.fonts.monoSmall.fontFamily,
+    color: theme.colors.textSecondary,
+  },
+  chipLabelActive: {
+    color: theme.colors.ringWater,
+  },
+  stepperGroup: {
+    gap: 0,
+  },
+  permissionBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.sm,
+    backgroundColor: theme.colors.bgSurface3,
+    borderRadius: theme.radius.button,
+    borderWidth: 1,
+    borderColor: theme.colors.warning,
+    padding: theme.spacing.md,
+    marginBottom: theme.spacing.lg,
+  },
+  permissionBannerText: {
+    fontSize: 13,
+    fontFamily: theme.fonts.body.fontFamily,
+    color: theme.colors.warning,
+    flex: 1,
+  },
+  toggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: theme.spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.borderDefault,
+  },
+  toggleLabel: {
+    flex: 1,
+    gap: 2,
   },
 });
