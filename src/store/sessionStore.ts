@@ -11,6 +11,7 @@ export interface ActiveSet {
   reps: number | null;
   rpe: number | null;
   isWarmup: boolean;
+  isDropSet: boolean;
   restSeconds: number | null;
   isCompleted: boolean;
 }
@@ -18,6 +19,8 @@ export interface ActiveSet {
 export interface ActiveExercise {
   exerciseId: string;
   exerciseName: string;
+  isUnilateral: boolean;
+  defaultRestSeconds: number | null;
   sets: ActiveSet[];
 }
 
@@ -36,7 +39,7 @@ interface SessionState {
   discardSession: () => void;
 
   // Exercise management
-  addExercise: (exerciseId: string, exerciseName: string) => void;
+  addExercise: (exerciseId: string, exerciseName: string, isUnilateral?: boolean, defaultRestSeconds?: number | null) => void;
   removeExercise: (exerciseId: string) => void;
 
   // Set management
@@ -81,10 +84,10 @@ export const useSessionStore = create<SessionState>()(
 
       discardSession: () => set({ ...emptyState }),
 
-      addExercise: (exerciseId, exerciseName) =>
+      addExercise: (exerciseId, exerciseName, isUnilateral = false, defaultRestSeconds = null) =>
         set((s) => {
           if (s.exercises.some((e) => e.exerciseId === exerciseId)) return s;
-          return { exercises: [...s.exercises, { exerciseId, exerciseName, sets: [] }] };
+          return { exercises: [...s.exercises, { exerciseId, exerciseName, isUnilateral, defaultRestSeconds, sets: [] }] };
         }),
 
       removeExercise: (exerciseId) =>
@@ -103,6 +106,7 @@ export const useSessionStore = create<SessionState>()(
               reps: null,
               rpe: null,
               isWarmup: false,
+              isDropSet: false,
               restSeconds: null,
               isCompleted: false,
               ...partial,

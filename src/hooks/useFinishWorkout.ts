@@ -32,6 +32,7 @@ function buildSets(payload: FinishPayload, userId: string): WorkoutSetInsert[] {
         reps: ws.reps,
         rpe: ws.rpe,
         is_warmup: ws.isWarmup,
+        is_drop_set: ws.isDropSet,
         rest_seconds: ws.restSeconds,
         completed_at: now,
       });
@@ -53,7 +54,11 @@ function buildOptimisticSession(payload: FinishPayload, userId: string): Workout
   const totalVolume = payload.exercises.reduce(
     (sum, ex) =>
       sum +
-      ex.sets.reduce((s, ws) => s + (ws.isCompleted ? (ws.weightKg ?? 0) * (ws.reps ?? 0) : 0), 0),
+      ex.sets.reduce(
+        (s, ws) =>
+          s + (ws.isCompleted ? (ws.weightKg ?? 0) * (ws.reps ?? 0) * (ex.isUnilateral ? 2 : 1) : 0),
+        0,
+      ),
     0,
   );
   const now = new Date().toISOString();

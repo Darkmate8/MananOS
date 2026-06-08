@@ -1,10 +1,45 @@
 import { useEffect, useRef, useState } from 'react';
 import * as Haptics from 'expo-haptics';
+import { Audio } from 'expo-av';
 import { useSessionStore } from '@/store/sessionStore';
+
+let audioModeConfigured = false;
+
+async function configureAudioMode() {
+  if (audioModeConfigured) return;
+  audioModeConfigured = true;
+  try {
+    await Audio.setAudioModeAsync({
+      staysActiveInBackground: true,
+      playsInSilentModeIOS: true,
+    });
+  } catch {
+    // Non-critical — best effort
+  }
+}
+
+async function playChime() {
+  try {
+    await configureAudioMode();
+    const { sound } = await Audio.Sound.createAsync(
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      require('../../assets/sounds/chime.mp3'),
+      { shouldPlay: true, volume: 1.0 },
+    );
+    sound.setOnPlaybackStatusUpdate((status) => {
+      if ('isLoaded' in status && status.isLoaded && status.didJustFinish) {
+        sound.unloadAsync();
+      }
+    });
+  } catch {
+    // Chime unavailable — haptic already fired
+  }
+}
 
 export function useRestTimer() {
   const restTimerSeconds = useSessionStore((s) => s.restTimerSeconds);
   const clearRestTimer = useSessionStore((s) => s.clearRestTimer);
+  const setRestTimer = useSessionStore((s) => s.setRestTimer);
 
   const [remaining, setRemaining] = useState<number>(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -32,6 +67,7 @@ export function useRestTimer() {
           clearInterval(intervalRef.current!);
           intervalRef.current = null;
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          playChime();
           clearRestTimer();
           return 0;
         }
@@ -56,5 +92,5 @@ export function useRestTimer() {
 
   const isActive = restTimerSeconds !== null;
 
-  return { remaining, isActive, total: initialRef.current, skip };
+  return { remaining, isActive, total: initialRef.current, skip, setRestTimer };
 }

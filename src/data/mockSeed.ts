@@ -44,6 +44,8 @@ export const mockExercises: ExerciseRow[] = [
     muscle_group: 'Chest',
     equipment: 'Barbell',
     is_archived: false,
+    is_unilateral: false,
+    default_rest_seconds: null,
     created_at: '2025-01-01T00:00:00Z',
   },
   {
@@ -53,6 +55,8 @@ export const mockExercises: ExerciseRow[] = [
     muscle_group: 'Back',
     equipment: 'Bodyweight',
     is_archived: false,
+    is_unilateral: false,
+    default_rest_seconds: null,
     created_at: '2025-01-01T00:00:00Z',
   },
   {
@@ -62,6 +66,8 @@ export const mockExercises: ExerciseRow[] = [
     muscle_group: 'Legs',
     equipment: 'Barbell',
     is_archived: false,
+    is_unilateral: false,
+    default_rest_seconds: null,
     created_at: '2025-01-01T00:00:00Z',
   },
   {
@@ -71,6 +77,8 @@ export const mockExercises: ExerciseRow[] = [
     muscle_group: 'Hamstrings',
     equipment: 'Barbell',
     is_archived: false,
+    is_unilateral: false,
+    default_rest_seconds: null,
     created_at: '2025-01-01T00:00:00Z',
   },
   {
@@ -80,6 +88,8 @@ export const mockExercises: ExerciseRow[] = [
     muscle_group: 'Shoulders',
     equipment: 'Barbell',
     is_archived: false,
+    is_unilateral: false,
+    default_rest_seconds: null,
     created_at: '2025-01-01T00:00:00Z',
   },
 ];
@@ -105,6 +115,7 @@ export const mockWorkoutSets: WorkoutSetRow[] = [
     reps: 8,
     rpe: 7,
     is_warmup: false,
+    is_drop_set: false,
     rest_seconds: 120,
     volume: 640,
     completed_at: `${TODAY}T09:05:00Z`,
@@ -119,6 +130,7 @@ export const mockWorkoutSets: WorkoutSetRow[] = [
     reps: 7,
     rpe: 8,
     is_warmup: false,
+    is_drop_set: false,
     rest_seconds: 120,
     volume: 577.5,
     completed_at: `${TODAY}T09:08:00Z`,

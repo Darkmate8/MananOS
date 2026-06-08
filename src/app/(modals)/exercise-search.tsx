@@ -65,7 +65,7 @@ export default function ExerciseSearchModal() {
   const addExercise = useSessionStore((s) => s.addExercise);
 
   const handleSelect = useCallback((exercise: ExerciseRow) => {
-    addExercise(exercise.id, exercise.name);
+    addExercise(exercise.id, exercise.name, exercise.is_unilateral, exercise.default_rest_seconds);
     router.back();
   }, [addExercise]);
 

@@ -66,6 +66,8 @@ export interface Database {
           muscle_group: string | null;
           equipment: string | null;
           is_archived: boolean;
+          is_unilateral: boolean;
+          default_rest_seconds: number | null;
           created_at: string;
         };
         Insert: {
@@ -75,6 +77,8 @@ export interface Database {
           muscle_group?: string | null;
           equipment?: string | null;
           is_archived?: boolean;
+          is_unilateral?: boolean;
+          default_rest_seconds?: number | null;
           created_at?: string;
         };
         Update: {
@@ -84,6 +88,8 @@ export interface Database {
           muscle_group?: string | null;
           equipment?: string | null;
           is_archived?: boolean;
+          is_unilateral?: boolean;
+          default_rest_seconds?: number | null;
           created_at?: string;
         };
         Relationships: [];
@@ -129,6 +135,7 @@ export interface Database {
           reps: number | null;
           rpe: number | null;
           is_warmup: boolean;
+          is_drop_set: boolean;
           rest_seconds: number | null;
           volume: number;
           completed_at: string;
@@ -143,6 +150,7 @@ export interface Database {
           reps?: number | null;
           rpe?: number | null;
           is_warmup?: boolean;
+          is_drop_set?: boolean;
           rest_seconds?: number | null;
           completed_at?: string;
         };
@@ -156,6 +164,7 @@ export interface Database {
           reps?: number | null;
           rpe?: number | null;
           is_warmup?: boolean;
+          is_drop_set?: boolean;
           rest_seconds?: number | null;
           completed_at?: string;
         };

@@ -36,10 +36,10 @@ function formatElapsed(secs: number): string {
   return h > 0 ? `${h}:${m}:${s}` : `${m}:${s}`;
 }
 
-function computeVolume(weightKg: number | null, reps: number | null): string {
+function computeVolume(weightKg: number | null, reps: number | null, isUnilateral: boolean): string {
   const w = weightKg ?? 0;
   const r = reps ?? 0;
-  const vol = w * r;
+  const vol = w * r * (isUnilateral ? 2 : 1);
   return vol > 0 ? `${vol.toLocaleString()} kg` : '—';
 }
 
@@ -70,10 +70,14 @@ function PressableButton({
 function SetRow({
   set,
   exerciseId,
+  isUnilateral,
+  defaultRestSeconds,
   onPRCheck,
 }: {
   set: ActiveSet;
   exerciseId: string;
+  isUnilateral: boolean;
+  defaultRestSeconds: number | null;
   onPRCheck: (weightKg: number | null, reps: number | null) => void;
 }) {
   const updateSet = useSessionStore((s) => s.updateSet);
@@ -86,6 +90,10 @@ function SetRow({
   const checkAnimStyle = useAnimatedStyle(() => ({ transform: [{ scale: checkScale.value }] }));
   const removeScale = useSharedValue(1);
   const removeAnimStyle = useAnimatedStyle(() => ({ transform: [{ scale: removeScale.value }] }));
+  const wScale = useSharedValue(1);
+  const wAnimStyle = useAnimatedStyle(() => ({ transform: [{ scale: wScale.value }] }));
+  const dScale = useSharedValue(1);
+  const dAnimStyle = useAnimatedStyle(() => ({ transform: [{ scale: dScale.value }] }));
 
   const commitWeight = useCallback(() => {
     const val = parseFloat(weightStr);
@@ -100,11 +108,40 @@ function SetRow({
   const weightKg = parseFloat(weightStr) || null;
   const reps = parseInt(repsStr, 10) || null;
 
+  const badgeLabel = set.isWarmup ? 'W' : set.isDropSet ? 'D' : set.setIndex;
+
   return (
     <View style={styles.setRow}>
-      <View style={styles.setIndexBadge}>
-        <Text style={styles.setIndex}>{set.isWarmup ? 'W' : set.setIndex}</Text>
+      <View style={[styles.setIndexBadge, set.isWarmup && styles.setIndexBadgeWarmup, set.isDropSet && !set.isWarmup && styles.setIndexBadgeDrop]}>
+        <Text style={styles.setIndex}>{badgeLabel}</Text>
       </View>
+
+      {/* W / D type toggles */}
+      <AnimatedPressable
+        hitSlop={6}
+        onPressIn={() => { wScale.value = withTiming(0.97, { duration: theme.animation.press }); }}
+        onPressOut={() => { wScale.value = withTiming(1, { duration: theme.animation.press }); }}
+        onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          updateSet(exerciseId, set.id, { isWarmup: !set.isWarmup });
+        }}
+        style={[styles.typePill, set.isWarmup && styles.typePillActive, wAnimStyle]}
+      >
+        <Text style={[styles.typePillText, set.isWarmup && styles.typePillTextActive]}>W</Text>
+      </AnimatedPressable>
+
+      <AnimatedPressable
+        hitSlop={6}
+        onPressIn={() => { dScale.value = withTiming(0.97, { duration: theme.animation.press }); }}
+        onPressOut={() => { dScale.value = withTiming(1, { duration: theme.animation.press }); }}
+        onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          updateSet(exerciseId, set.id, { isDropSet: !set.isDropSet });
+        }}
+        style={[styles.typePill, set.isDropSet && styles.typePillActive, dAnimStyle]}
+      >
+        <Text style={[styles.typePillText, set.isDropSet && styles.typePillTextActive]}>D</Text>
+      </AnimatedPressable>
 
       <View style={styles.setField}>
         <TextInput
@@ -136,7 +173,7 @@ function SetRow({
         <Text style={styles.setUnit}>reps</Text>
       </View>
 
-      <Text style={styles.setVolume}>{computeVolume(weightKg, reps)}</Text>
+      <Text style={styles.setVolume}>{set.isWarmup ? '—' : computeVolume(weightKg, reps, isUnilateral)}</Text>
 
       <AnimatedPressable
         hitSlop={8}
@@ -146,8 +183,8 @@ function SetRow({
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
           const w = parseFloat(weightStr) || null;
           const r = parseInt(repsStr, 10) || null;
-          completeSet(exerciseId, set.id, set.restSeconds ?? 90);
-          if (!set.isCompleted) onPRCheck(w, r);
+          completeSet(exerciseId, set.id, defaultRestSeconds ?? 90);
+          if (!set.isCompleted && !set.isWarmup) onPRCheck(w, r);
         }}
         style={[styles.checkBtn, set.isCompleted && styles.checkBtnDone, checkAnimStyle]}
       >
@@ -184,8 +221,9 @@ function ExerciseCard({
   const removeExScale = useSharedValue(1);
   const removeExAnimStyle = useAnimatedStyle(() => ({ transform: [{ scale: removeExScale.value }] }));
 
+  const volumeMultiplier = exercise.isUnilateral ? 2 : 1;
   const totalVolume = exercise.sets.reduce(
-    (sum, s) => sum + (s.weightKg ?? 0) * (s.reps ?? 0),
+    (sum, s) => sum + (!s.isWarmup ? (s.weightKg ?? 0) * (s.reps ?? 0) * volumeMultiplier : 0),
     0,
   );
 
@@ -215,7 +253,12 @@ function ExerciseCard({
 
       <View style={styles.setHeader}>
         <Text style={[styles.setHeaderLabel, { width: 32 }]}>SET</Text>
-        <Text style={[styles.setHeaderLabel, { flex: 1 }]}>WEIGHT</Text>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.setHeaderLabel}>WEIGHT</Text>
+          {exercise.isUnilateral && (
+            <Text style={styles.setHeaderCaption}>per arm</Text>
+          )}
+        </View>
         <Text style={[styles.setHeaderLabel, { flex: 1 }]}>REPS</Text>
         <Text style={[styles.setHeaderLabel, { flex: 1 }]}>VOL</Text>
         <View style={{ width: 24 }} />
@@ -226,6 +269,8 @@ function ExerciseCard({
           key={set.id}
           set={set}
           exerciseId={exercise.exerciseId}
+          isUnilateral={exercise.isUnilateral}
+          defaultRestSeconds={exercise.defaultRestSeconds}
           onPRCheck={(w, r) => onPRCheck(exercise.exerciseId, exercise.exerciseName, w, r)}
         />
       ))}
@@ -459,6 +504,12 @@ const styles = StyleSheet.create({
     letterSpacing: 0.8,
     textTransform: 'uppercase',
   },
+  setHeaderCaption: {
+    fontSize: 9,
+    fontFamily: theme.fonts.body.fontFamily,
+    color: theme.colors.accentPrimary,
+    textTransform: 'lowercase',
+  },
   setRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -473,11 +524,39 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  setIndexBadgeWarmup: {
+    backgroundColor: theme.colors.accentPrimaryMuted,
+  },
+  setIndexBadgeDrop: {
+    backgroundColor: theme.colors.accentPrimaryMuted,
+  },
   setIndex: {
     fontSize: 13,
     fontFamily: theme.fonts.mono.fontFamily,
     color: theme.colors.textSecondary,
     fontWeight: '500',
+  },
+  typePill: {
+    width: 22,
+    height: 22,
+    borderRadius: theme.radius.pill,
+    borderWidth: 1,
+    borderColor: theme.colors.borderStrong,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  typePillActive: {
+    backgroundColor: theme.colors.accentPrimary,
+    borderColor: theme.colors.accentPrimary,
+  },
+  typePillText: {
+    fontSize: 10,
+    fontFamily: theme.fonts.bodyBold.fontFamily,
+    color: theme.colors.textTertiary,
+    fontWeight: '500',
+  },
+  typePillTextActive: {
+    color: theme.colors.textPrimary,
   },
   setField: {
     flex: 1,

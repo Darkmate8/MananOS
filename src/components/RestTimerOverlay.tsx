@@ -1,5 +1,5 @@
-import { useEffect } from 'react';
-import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { View, Text, Pressable, TextInput, StyleSheet } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -18,16 +18,21 @@ function formatCountdown(secs: number): string {
 }
 
 export function RestTimerOverlay() {
-  const { remaining, isActive, total, skip } = useRestTimer();
+  const { remaining, isActive, total, skip, setRestTimer } = useRestTimer();
   const insets = useSafeAreaInsets();
   const translateY = useSharedValue(160);
   const skipScale = useSharedValue(1);
   const skipAnimStyle = useAnimatedStyle(() => ({ transform: [{ scale: skipScale.value }] }));
 
+  const [isEditing, setIsEditing] = useState(false);
+  const [editValue, setEditValue] = useState('');
+  const inputRef = useRef<TextInput>(null);
+
   useEffect(() => {
     translateY.value = withTiming(isActive ? 0 : 160, {
       duration: theme.animation.modal,
     });
+    if (!isActive) setIsEditing(false);
   }, [isActive]);
 
   const animStyle = useAnimatedStyle(() => ({
@@ -37,14 +42,44 @@ export function RestTimerOverlay() {
   const progress = total > 0 ? remaining / total : 0;
   const isUrgent = remaining <= 10 && remaining > 0;
 
+  const handleCountdownPress = () => {
+    setEditValue(remaining.toString());
+    setIsEditing(true);
+    setTimeout(() => inputRef.current?.focus(), 50);
+  };
+
+  const commitEdit = () => {
+    const parsed = parseInt(editValue, 10);
+    if (!isNaN(parsed) && parsed > 0) {
+      setRestTimer(parsed);
+    }
+    setIsEditing(false);
+  };
+
   return (
     <Animated.View style={[styles.container, animStyle, { paddingBottom: insets.bottom + theme.spacing.lg }]}>
       <View style={styles.row}>
         <View style={styles.labelBlock}>
           <Text style={styles.label}>REST</Text>
-          <Text style={[styles.countdown, isUrgent && styles.countdownUrgent]}>
-            {formatCountdown(remaining)}
-          </Text>
+          {isEditing ? (
+            <TextInput
+              ref={inputRef}
+              style={styles.countdownInput}
+              value={editValue}
+              onChangeText={setEditValue}
+              onBlur={commitEdit}
+              onSubmitEditing={commitEdit}
+              keyboardType="number-pad"
+              returnKeyType="done"
+              selectTextOnFocus
+            />
+          ) : (
+            <Pressable onPress={handleCountdownPress} hitSlop={8}>
+              <Text style={[styles.countdown, isUrgent && styles.countdownUrgent]}>
+                {formatCountdown(remaining)}
+              </Text>
+            </Pressable>
+          )}
         </View>
 
         <View style={styles.progressTrack}>
@@ -106,6 +141,13 @@ const styles = StyleSheet.create({
   },
   countdownUrgent: {
     color: theme.colors.warning,
+  },
+  countdownInput: {
+    ...theme.typography.monoDataLarge,
+    color: theme.colors.accentPrimary,
+    fontSize: 22,
+    minWidth: 60,
+    padding: 0,
   },
   progressTrack: {
     flex: 1,
