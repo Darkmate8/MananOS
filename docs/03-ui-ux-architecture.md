@@ -70,19 +70,28 @@ Apply globally as demonstrated across all mockups:
 ### 3.3 Workout Set Logger UI
 - Layout properties derived from `Workouts _ mid-session_ set 3 PR.jpg`.
 - **Row Properties:** Explicit container height constrained to 56px. Horizontally array elements: Set counter indicator (28px radius layout box, background set to `bg-surface-2`), entry properties for `weight_kg` and `reps` configured with `mono-data/text-primary`.
-- **Set Modification Type Pills:** For non-standard configurations (Warmup, Drop), append small compact text chips (`radius-pill`, background color `bg-surface-2`) containing localized string symbols (`W`, `D`).
+- **Set Type Pills:** Pills appear inline right of the set counter. `W` pill = warmup (`bg-surface-2`, `text-secondary`). `D` pill = drop set (`accent-primary-muted` background, `accent-primary` text). Tapping a pill toggles the flag. Both can be active simultaneously (e.g. a warmup drop is legal but rare).
+- **Unilateral Weight Label:** When the active exercise has `is_unilateral = true`, render a `"per arm"` caption string directly below the weight input field using `caption/text-tertiary`. No other UI change — weight entry and volume calculation behavior are explained in the PRD.
 - **Validation Switch Component:** 40px layout structure target. Default state displays empty circle ring bound to `border-default`. Checking elements updates state to solid `accent-primary` fill mapping a internal primary-white indicator icon.
 - **PR Row Modification Variant:** When a personal milestone is logged, immediately shift localized typography to `accent-primary` and render a compact terracotta icon tag left of numeric text data.
 
 ### 3.4 Interactive Habit Tile & Log Cards
 - Layout properties derived from `Habits _ contribution grid.jpg`.
-- **Primary Grid Blueprint:** Structural cells bounded tightly to 80px by 80px squares. Background layer maps `bg-surface-1` styled with a subtle `border-default` vector wrap. Rounded corners follow `radius-card`. 
+- **Primary Grid Blueprint:** Structural cells bounded tightly to 80px by 80px squares. Background layer maps `bg-surface-1` styled with a subtle `border-default` vector wrap. Rounded corners follow `radius-card`.
 - **Binary Status Toggles:** Inside the cell canvas area, isolate a single 28px central glyph icon layered atop a lowercase text description label. Completion shifts state values to an integrated `accent-primary-muted` background fill framed by a matching terracotta border wrap.
+- **Aggregate Contribution Grid:** The 52-week grid on `habits/index.tsx` renders aggregate data. Each cell color is derived from `ratio = completions_for_day / total_active_habits`, mapped to the existing `grid-0` → `grid-4` intensity ramp. Section header label: `"ALL HABITS · 52 WKS"` (`caption/text-tertiary`, uppercase, letterSpacing 1.2). Tap a cell to show a small inline tooltip: `"MON JUN 3 · 3/5 habits"`. The tooltip auto-dismisses after 2s or on tap-elsewhere.
+
+### 3.10 Workout Template Card
+- **List Row Geometry:** Template cards in `workouts/templates.tsx` are full-width cards (`bg-surface-1`, `radius-card`, `border-default`). Card height is auto — min 72px.
+- **Composition:** Template name in `bodyBold/text-primary`. Below it: a compact exercise preview string listing the first 3 exercise names separated by `·` in `caption/text-tertiary`. Far right: a `"▶ Start"` pill button (`accent-primary` background, `radius-pill`).
+- **Edit / Delete:** Trailing swipe-right reveals an edit icon (`Feather/edit-2`, `warning` color) and a delete icon (`Feather/trash-2`, `error` color). Long-press also triggers the delete confirmation alert.
+- **Create New FAB:** Same design as the workouts screen FAB — full-width bottom-pinned button, `accent-primary`, label `"New Template"`.
 
 ### 3.5 Rest Timer Element Overlay
 - Layout properties derived from `Workouts _ mid-session_ set 3 PR.jpg`.
 - **Geometry:** Bottom-pinned floating viewport card container, extending to a precise height boundary of 120px. Sits directly above the bottom navigation architecture layer.
 - **Composition:** Base fill layer drops to `bg-surface-3`. Upper boundary layer runs a continuous 3px linear animated execution line indicator tracking color property `accent-primary`. Core countdown statistics stack clean mono digits centered within the panel using typography style code `display-xl / JetBrains Mono`. Side boundaries mount ghost time correction shortcuts (`-15s`, `+15s`).
+- **Custom Duration Edit:** Tapping the countdown number itself transitions it inline to a numeric `TextInput` (same mono font, same size). User types a new value in seconds and confirms with the keyboard return key. This replaces remaining seconds for the current rest only — does not save to exercise defaults. On invalid input (non-numeric, <0), revert to current remaining time with a `Warning` haptic.
 
 ### 3.6 Chat UI System (Coach 1 Interface)
 - Layout properties derived from `Coach 1 chat _ streaming reply.jpg`.

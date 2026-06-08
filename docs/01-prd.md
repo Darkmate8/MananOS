@@ -29,13 +29,23 @@ Action-oriented interface. Must achieve render lifecycle under performance budge
 - **Constraint:** Do not render any performance charts or progression graphics on this screen.
 
 ### 2.2 Resistance Workout Tracking
-- **Template System:** Core blueprints containing an ordered array of target exercises with predefined set, rep, and load weights seeded from the historical parameters of the last recorded log instance of that template.
-- **Live Tracking Interface:** Starting a session deep-copies template constants into an editable active session state schema. Session modifications (appending, deleting, or swapping individual movements) apply exclusively to the current active session object.
+- **Template System:** Full Hevy-style CRUD. User creates named templates containing an ordered list of exercises, each with `target_sets`, `target_reps`, `target_weight_kg`, and an optional per-exercise `rest_seconds_override`. Starting a session deep-copies the template into an editable active session state schema. Session modifications (appending, deleting, or swapping individual movements) apply exclusively to the current active session object and never mutate the source template.
+- **Live Tracking Interface:** Starting a session deep-copies template constants into an editable active session state schema. Session modifications apply exclusively to the current active session object.
 - **Persistence Rules:** Active session must write state changes to local synchronous storage continuously. Mid-workout dropouts/app kills must reload state completely via a "Resume?" validation block on recovery boot.
-- **Set Logging Constraints:** Swipe-right interaction logs a row matching previous set parameters. Capture variables: `weight_kg`, `reps`, `set_type` (Normal, Warmup, Drop). Warmups are programmatic exclusions from volume logic. Drop sets require independent schema flags.
+- **Set Logging Constraints:** Swipe-right interaction logs a row matching previous set parameters. Capture variables: `weight_kg`, `reps`, `is_warmup`, `is_drop_set`.
+  - `is_warmup = true`: row excluded from volume totals and PR calculations. Visual indicator: `W` pill.
+  - `is_drop_set = true`: row counted in volume but flagged independently. Visual indicator: `D` pill.
+  - Both flags can coexist on a row (though uncommon).
+- **Unilateral Weight Rule:** Exercises with `is_unilateral = true` (dumbbells, cables, single-arm movements) display a "per arm" label next to the weight field. The logged `weight_kg` is the per-arm value. Application layer multiplies by 2 when computing total session volume display. The `volume` database column stores raw `weight_kg × reps` — the ×2 factor is applied client-side only.
+- **Rest Timer:**
+  - Auto-starts immediately on set completion.
+  - Duration priority order: (1) per-exercise `default_rest_seconds` if set, (2) global default of 90s.
+  - User can tap the timer overlay to manually set a custom duration for the current rest interval only. This does not mutate exercise defaults.
+  - On timer expiry: fire `Haptics.NotificationFeedbackType.Success` + `expo-av` short audio buzz to alert the user even if the screen is backgrounded.
+- **Delete Workout Session:** Long-press a completed workout card in the history list triggers a confirmation alert. On confirm, deletes the `workout_sessions` row (cascades to `workout_sets`). TanStack Query cache invalidated immediately.
 - **Automation Blocks:**
-  - Automated rest countdown timer triggering immediately upon set validation. Preconfigured default values pull from exercise metadata.
-  - PR Detection Protocol: On set validation, check against database to catch PR triggers across: Heaviest Weight, Max e1RM, and Max Reps at specific weights. Fire visual layout animation when boolean catches true.
+  - PR Detection Protocol: On set validation, check against `personal_records` cache. Triggers across: Heaviest Weight, Max e1RM, Max Reps at specific weight. Fire visual PR animation + `NotificationFeedbackType.Success`.
+- **Exercise Library:** Seeded from AscendAPI (exercisedb.dev). Each exercise stores `external_id`, `muscle_group`, `equipment`, `is_unilateral`, `default_rest_seconds`, `instructions`, `gif_url`. User can also create custom exercises. The exercise search modal filters across both seeded and custom entries.
 
 ### 2.3 Cardio Tracking
 - **Structure:** Manual single-line interface inputs tracking `activity_type` (Run / Cycle), `distance_km`, and `duration_min`.
@@ -43,20 +53,36 @@ Action-oriented interface. Must achieve render lifecycle under performance budge
 - **Constraint:** Strictly no GPS, route-mapping, or hardware geo-location hooks allowed in code execution.
 
 ### 2.4 Nutrition Logging
-- **Parameters:** Daily targets constrain solely to absolute Calories (kcal) and Protein (grams).
-- **Control Plane:** Zero direct manual entry panels or text inputs. All additions must pipe exclusively through Coach 2 parsed JSON payload blocks.
-- **Post-Log Mutations:** Individual entries within the daily consumption array must remain completely editable and deletable via inline modal triggers.
+- **Parameters:** Daily targets constrain to Calories (kcal) and Protein (grams). Both are user-configurable via the Settings modal and persisted to `profile.kcal_goal` / `profile.protein_goal_g`.
+- **Control Plane:** All food additions must pipe exclusively through Coach 2 parsed JSON payload blocks. No direct manual food-name entry.
+- **Post-Log Mutations:** Individual entries within the daily consumption array must remain deletable via inline swipe or trash icon. Deleting a `meal_item` row triggers immediate TanStack cache invalidation.
+- **Weekly Deficit View:** A dedicated section in `nutrition/history.tsx` reads `v_weekly_nutrition` and displays:
+  - A 7-day bar chart of kcal consumed vs `kcal_goal`.
+  - A running weekly kcal deficit/surplus total (`Σ(kcal_goal - kcal_consumed)` over 7 days).
+  - A 7-day protein achievement bar showing daily protein vs `protein_goal_g`.
 
 ### 2.5 Habits & Water Systems
-- **Habit Typologies:** - Binary: Traditional toggle switch (Completed / Pending).
+- **Habit Typologies:**
+  - Binary: Traditional toggle switch (Completed / Pending).
   - Count-Based: Integer counter tracking `current_count / target_count`.
 - **Habit Metadata:** Custom String fields for `name`, `description`, `color_token`. Tracking requires immediate data serialization for 53-week layout visualization blocks.
-- **Water Tracker:** Simple click interface executing tracking additions via uniform cup size intervals. State array maps cleanly to device midnight variables for complete data resetting.
+- **Habit Grid — Aggregate Mode:** The contribution grid on `habits/index.tsx` renders an aggregate all-habits view. Each cell represents one calendar day. Cell color intensity is derived from `(habits_completed_that_day / total_active_habits)` normalized to the `grid-0` → `grid-4` ramp. Individual habit detail grids remain accessible via the existing `[habitId].tsx` drill-down route.
+- **Water Tracker:** Click interface for additions. Default increment is `+250ml` (1 cup). User can set a custom cup-size increment in Settings, persisted to `profile`. Water log entries are deletable (tap-to-decrement or explicit clear-day action). State maps to device midnight for daily resets.
 
 ### 2.6 Dual AI Coach Engines
-Two client-side isolated prompt setups using localized secure key validation. 
-- **Coach 1 (General Chat System):** Implements `streamText` processing engine. On component mounting layout, construct a compact text template enclosing localized historical user records (last 7 days of training, weight, volume vectors, and nutritional intake summaries) and inject directly into the base initialization system prompt. 
+Two client-side isolated prompt setups using localized secure key validation.
+- **Coach 1 (General Chat System):** Implements `streamText` processing engine. On component mounting layout, construct a compact text template enclosing localized historical user records (last 7 days of training, weight, volume vectors, and nutritional intake summaries) and inject directly into the base initialization system prompt.
+  - **Ephemeral Session Rule:** Chat history is strictly in-memory (React `useState`). No messages are loaded from or written to the `chat_messages` table. Each screen mount starts a clean conversation. The `chat_messages` table is dropped from the schema in a future migration — do not write to it.
+  - This is a hard cost-control constraint. Sending history to the model on every turn burns tokens. Each session starts cold.
 - **Coach 2 (Nutrition Parser):** Non-chat interface executing deterministic `generateObject` structuring logic. Takes arbitrary natural language text string block, runs evaluation matrix, and outputs mapped nutritional primitives.
+
+### 2.7 Settings & Custom Goals
+The Settings modal (`/(modals)/settings.tsx`) is the single control surface for all user-configurable parameters. It must expose:
+- **API Keys:** Gemini (primary), OpenAI (optional fallback). Persisted to `expo-secure-store`.
+- **Daily Nutrition Goals:** `kcal_goal` (integer) and `protein_goal_g` (integer). Persisted to `profile`.
+- **Activity Goals:** `steps_goal` (integer) and `water_goal_cups` (integer). Persisted to `profile`.
+- **Water Cup Size:** Custom ml-per-cup value for the quick-add button. Stored locally (MMKV). Default 250ml.
+- All goal fields render as numeric `TextInput` fields with a Save button. On save, `upsert` to `profile` via the standard offline mutation pattern.
 
 ---
 

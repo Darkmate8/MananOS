@@ -15,29 +15,31 @@ src/app/
 │   ├── today/                           # TODAY STACK
 │   │   ├── _layout.tsx                  # <Stack> wrapper
 │   │   ├── index.tsx                    # Today Dashboard root view
-│   │   └── coach.tsx                    # Coach 1 Chat interface
+│   │   └── coach.tsx                    # Coach 1 Chat interface (ephemeral — no DB history)
 │   ├── workouts/                        # WORKOUTS STACK
 │   │   ├── _layout.tsx                  # <Stack> wrapper
-│   │   ├── index.tsx                    # Workout list and history view
+│   │   ├── index.tsx                    # Workout list and history view (long-press to delete)
 │   │   ├── active.tsx                   # Active session tracking UI (State Guarded)
+│   │   ├── templates.tsx                # Template library: browse, start, edit, delete
 │   │   ├── exercise-detail.tsx          # Exercise progression view
 │   │   └── summary.tsx                  # Finished workout metric breakdown
 │   ├── nutrition/                       # NUTRITION STACK
 │   │   ├── _layout.tsx                  # <Stack> wrapper
 │   │   ├── index.tsx                    # Nutrition logging & Coach 2 input
 │   │   ├── meal-detail.tsx              # Single meal breakdown view
-│   │   └── history.tsx                  # Nutrition history view
+│   │   └── history.tsx                  # Nutrition history + weekly deficit view
 │   └── habits/                          # HABITS STACK
 │       ├── _layout.tsx                  # <Stack> wrapper
-│       ├── index.tsx                    # Habits home & daily toggles
-│       └── habit-detail.tsx             # 53-week contribution grid
+│       ├── index.tsx                    # Habits home: aggregate grid + daily toggles
+│       └── [habitId].tsx               # Individual 53-week contribution grid
 └── (modals)/                            # GLOBAL MODALS (Root interceptor group)
     ├── _layout.tsx                      # <Stack screenOptions={{ presentation: 'modal' }}>
     ├── set-edit.tsx                     # Workout set adjustments sheet
     ├── weight-log.tsx                   # Bodyweight entry sheet
     ├── habit-count.tsx                  # Incremental counter sheet
     ├── create-habit.tsx                 # Blueprint addition sheet
-    └── settings.tsx                     # System config panel
+    ├── create-template.tsx              # Template builder/editor sheet (Phase 7.4)
+    └── settings.tsx                     # System config panel + goal inputs
 
 ```
 
@@ -53,6 +55,7 @@ AI routing engines must configure linking properties exactly to this JSON matrix
   { "path": "/(tabs)/today/coach", "type": "StackPush", "deepLink": "yourapp://today/coach", "backAction": "router.back()" },
   { "path": "/(tabs)/workouts", "type": "TabRoot", "deepLink": "yourapp://workouts", "backAction": "Prevent snap back" },
   { "path": "/(tabs)/workouts/active", "type": "StackPush", "deepLink": "yourapp://workouts/active", "backAction": "Intercept with Discard Alert" },
+  { "path": "/(tabs)/workouts/templates", "type": "StackPush", "deepLink": "yourapp://workouts/templates", "backAction": "router.back()" },
   { "path": "/(tabs)/workouts/exercise-detail", "type": "StackPush", "deepLink": "yourapp://workouts/exercise-detail", "backAction": "router.back()" },
   { "path": "/(tabs)/workouts/summary", "type": "StackPush", "deepLink": "yourapp://workouts/summary", "backAction": "router.replace('/(tabs)/workouts')" },
   { "path": "/(tabs)/nutrition", "type": "TabRoot", "deepLink": "yourapp://nutrition", "backAction": "Prevent snap back" },
@@ -64,6 +67,7 @@ AI routing engines must configure linking properties exactly to this JSON matrix
   { "path": "/(modals)/weight-log", "type": "RootModal", "deepLink": "yourapp://(modals)/weight-log", "backAction": "router.dismiss()" },
   { "path": "/(modals)/habit-count", "type": "RootModal", "deepLink": "yourapp://(modals)/habit-count", "backAction": "router.dismiss()" },
   { "path": "/(modals)/create-habit", "type": "RootModal", "deepLink": "yourapp://(modals)/create-habit", "backAction": "router.dismiss()" },
+  { "path": "/(modals)/create-template", "type": "RootModal", "deepLink": "yourapp://(modals)/create-template", "backAction": "router.dismiss()" },
   { "path": "/(modals)/settings", "type": "RootModal", "deepLink": "yourapp://(modals)/settings", "backAction": "router.dismiss()" }
 ]
 
