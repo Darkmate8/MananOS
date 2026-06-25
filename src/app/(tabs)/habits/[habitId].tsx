@@ -1,5 +1,5 @@
 import { useMemo, useCallback } from 'react';
-import { View, Text, ScrollView, Pressable, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, Pressable, Alert, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
@@ -13,6 +13,7 @@ const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 import { calcStreak, calcTotal, todayDateStr } from '@/lib/habitUtils';
 import { useHabitHistory, type HabitHistoryData } from '@/hooks/useHabitHistory';
 import { useLogHabitCompletion } from '@/hooks/useLogHabitCompletion';
+import { useDeleteHabit } from '@/hooks/useDeleteHabit';
 import { useAuthStore } from '@/store/authStore';
 import { HabitContributionGrid } from '@/components/HabitContributionGrid';
 
@@ -23,11 +24,33 @@ export default function HabitDetailScreen() {
 
   const { data, isLoading } = useHabitHistory(habitId);
   const { mutate: logCompletion } = useLogHabitCompletion();
+  const { mutate: deleteHabit } = useDeleteHabit();
 
   const todayStr = useMemo(() => todayDateStr(), []);
   const habit = data?.habit;
   const backScale = useSharedValue(1);
   const backAnimStyle = useAnimatedStyle(() => ({ transform: [{ scale: backScale.value }] }));
+  const trashScale = useSharedValue(1);
+  const trashAnimStyle = useAnimatedStyle(() => ({ transform: [{ scale: trashScale.value }] }));
+
+  const handleDelete = useCallback(() => {
+    if (!habit) return;
+    Alert.alert(
+      'Delete Habit',
+      `Delete "${habit.name}"? This cannot be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => {
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            deleteHabit(habitId, { onSuccess: () => router.back() });
+          },
+        },
+      ],
+    );
+  }, [habit, habitId, deleteHabit]);
   const completionsMap = data?.completionsMap ?? {};
 
   const streak = useMemo(
@@ -85,6 +108,17 @@ export default function HabitDetailScreen() {
             <Text style={styles.dateMeta}>HABIT DETAIL</Text>
             <Text style={styles.title} numberOfLines={2}>{habit?.name ?? '—'}</Text>
           </View>
+          {habit && (
+            <AnimatedPressable
+              onPressIn={() => { trashScale.value = withTiming(0.97, { duration: theme.animation.press }); }}
+              onPressOut={() => { trashScale.value = withTiming(1, { duration: theme.animation.press }); }}
+              onPress={handleDelete}
+              style={[styles.trashBtn, trashAnimStyle]}
+              hitSlop={12}
+            >
+              <Feather name="trash-2" size={18} color={theme.colors.error} />
+            </AnimatedPressable>
+          )}
         </View>
 
         {/* Stats */}
@@ -140,6 +174,10 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.xxl,
   },
   backBtn: {
+    marginTop: theme.spacing.xs,
+    padding: theme.spacing.xs,
+  },
+  trashBtn: {
     marginTop: theme.spacing.xs,
     padding: theme.spacing.xs,
   },

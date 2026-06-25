@@ -73,7 +73,7 @@ async function fetchTemplates(userId: string): Promise<WorkoutTemplateDetail[]> 
       ...t,
       exercises,
       exerciseCount: exercises.length,
-      estimatedMinutes: estimateMinutes(exercises),
+      estimatedMinutes: t.target_duration_minutes ?? estimateMinutes(exercises),
     };
   });
 }

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { View, Text, Pressable, TextInput, StyleSheet } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -56,6 +57,12 @@ export function RestTimerOverlay() {
     setIsEditing(false);
   };
 
+  const CHIPS = [
+    { label: '−30', delta: -30 },
+    { label: '+30', delta: 30 },
+    { label: '+60', delta: 60 },
+  ] as const;
+
   return (
     <Animated.View style={[styles.container, animStyle, { paddingBottom: insets.bottom + theme.spacing.lg }]}>
       <View style={styles.row}>
@@ -82,14 +89,20 @@ export function RestTimerOverlay() {
           )}
         </View>
 
-        <View style={styles.progressTrack}>
-          <Animated.View
-            style={[
-              styles.progressFill,
-              { width: `${Math.round(progress * 100)}%` as `${number}%` },
-              isUrgent && styles.progressFillUrgent,
-            ]}
-          />
+        <View style={styles.chips}>
+          {CHIPS.map(({ label, delta }) => (
+            <Pressable
+              key={label}
+              hitSlop={6}
+              style={styles.chip}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                setRestTimer(Math.max(5, remaining + delta));
+              }}
+            >
+              <Text style={styles.chipText}>{label}</Text>
+            </Pressable>
+          ))}
         </View>
 
         <AnimatedPressable
@@ -101,6 +114,16 @@ export function RestTimerOverlay() {
         >
           <Text style={styles.skipText}>Skip</Text>
         </AnimatedPressable>
+      </View>
+
+      <View style={styles.progressTrack}>
+        <Animated.View
+          style={[
+            styles.progressFill,
+            { width: `${Math.round(progress * 100)}%` as `${number}%` },
+            isUrgent && styles.progressFillUrgent,
+          ]}
+        />
       </View>
     </Animated.View>
   );
@@ -117,11 +140,31 @@ const styles = StyleSheet.create({
     borderTopColor: theme.colors.borderStrong,
     paddingHorizontal: theme.spacing.xxl,
     paddingTop: theme.spacing.lg,
+    gap: theme.spacing.md,
   },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: theme.spacing.lg,
+  },
+  chips: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: theme.spacing.sm,
+  },
+  chip: {
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.xs,
+    borderRadius: theme.radius.pill,
+    borderWidth: 1,
+    borderColor: theme.colors.borderStrong,
+    backgroundColor: theme.colors.bgSurface3,
+  },
+  chipText: {
+    fontSize: 13,
+    fontFamily: theme.fonts.mono.fontFamily,
+    color: theme.colors.textSecondary,
   },
   labelBlock: {
     gap: theme.spacing.xs,
@@ -150,7 +193,6 @@ const styles = StyleSheet.create({
     padding: 0,
   },
   progressTrack: {
-    flex: 1,
     height: 4,
     backgroundColor: theme.colors.borderDefault,
     borderRadius: theme.radius.pill,

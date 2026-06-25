@@ -47,7 +47,7 @@ function TemplateCard({
         <View style={styles.cardTitleBlock}>
           <Text style={styles.cardName}>{template.name}</Text>
           <Text style={styles.cardMeta}>
-            {template.exerciseCount} exercise{template.exerciseCount === 1 ? '' : 's'} · ~{template.estimatedMinutes} min
+            {template.exerciseCount} exercise{template.exerciseCount === 1 ? '' : 's'} · {template.target_duration_minutes != null ? `${template.target_duration_minutes} min` : `~${template.estimatedMinutes} min`}
           </Text>
         </View>
         <AnimatedPressable

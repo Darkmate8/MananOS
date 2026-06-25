@@ -39,16 +39,15 @@ function TabItem({
       {focused && <View style={styles.activeDot} />}
       {!focused && <View style={styles.dotSpacer} />}
       <Feather name={tab.icon} size={22} color={color} />
-      <Text style={[styles.label, { color }]} numberOfLines={1}>{tab.label}</Text>
     </AnimatedPressable>
   );
 }
 
 const TAB_DEFS = [
-  { name: 'index',     label: 'Today',     icon: 'home'       },
-  { name: 'workouts',  label: 'Workouts',  icon: 'activity'   },
-  { name: 'nutrition', label: 'Nutrition', icon: 'pie-chart'  },
-  { name: 'habits',    label: 'Habits',    icon: 'check-square' },
+  { name: 'index',     icon: 'home'         },
+  { name: 'workouts',  icon: 'activity'     },
+  { name: 'nutrition', icon: 'pie-chart'    },
+  { name: 'habits',    icon: 'check-square' },
 ] as const;
 
 function CustomTabBar({ state, navigation }: TabBarProps) {
@@ -110,11 +109,6 @@ const styles = StyleSheet.create({
   dotSpacer: {
     width: 4,
     height: 4,
-  },
-  label: {
-    fontSize: 10,
-    fontFamily: theme.fonts.body.fontFamily,
-    includeFontPadding: false,
   },
 });
 

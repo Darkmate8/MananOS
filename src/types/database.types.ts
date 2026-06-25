@@ -111,6 +111,7 @@ export interface Database {
           notes: string | null;
           is_archived: boolean;
           sort_order: number;
+          target_duration_minutes: number | null;
           created_at: string;
           updated_at: string;
         };
@@ -121,6 +122,7 @@ export interface Database {
           notes?: string | null;
           is_archived?: boolean;
           sort_order?: number;
+          target_duration_minutes?: number | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -131,6 +133,7 @@ export interface Database {
           notes?: string | null;
           is_archived?: boolean;
           sort_order?: number;
+          target_duration_minutes?: number | null;
           created_at?: string;
           updated_at?: string;
         };

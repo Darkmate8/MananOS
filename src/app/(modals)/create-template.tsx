@@ -146,6 +146,7 @@ export default function CreateTemplateModal() {
   const { mutate: updateTemplate, isPending: updating } = useUpdateTemplate();
 
   const [name, setName] = useState('');
+  const [targetDurationStr, setTargetDurationStr] = useState('');
   const [drafts, setDrafts] = useState<TemplateExerciseDraft[]>([]);
   const [query, setQuery] = useState('');
   const [prefilled, setPrefilled] = useState(false);
@@ -159,6 +160,9 @@ export default function CreateTemplateModal() {
     const existing = templates.find((t) => t.id === templateId);
     if (!existing) return;
     setName(existing.name);
+    if (existing.target_duration_minutes != null) {
+      setTargetDurationStr(String(existing.target_duration_minutes));
+    }
     setDrafts(
       existing.exercises.map((ex) => ({
         exerciseId: ex.exercise_id,
@@ -200,10 +204,12 @@ export default function CreateTemplateModal() {
   function handleSave() {
     if (!canSave) return;
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    const parsedDuration = parseInt(targetDurationStr, 10);
     const payload = {
       templateId: isEdit ? templateId! : generateId(),
       name: name.trim(),
       notes: null,
+      targetDurationMinutes: !isNaN(parsedDuration) && parsedDuration > 0 ? parsedDuration : null,
       exercises: drafts,
     };
     if (isEdit) {
@@ -238,6 +244,22 @@ export default function CreateTemplateModal() {
             placeholderTextColor={theme.colors.textTertiary}
             returnKeyType="done"
           />
+
+          {/* Target duration */}
+          <Text style={styles.fieldLabel}>Target duration (optional)</Text>
+          <View style={styles.durationRow}>
+            <TextInput
+              style={styles.durationInput}
+              value={targetDurationStr}
+              onChangeText={setTargetDurationStr}
+              placeholder="—"
+              placeholderTextColor={theme.colors.textTertiary}
+              keyboardType="number-pad"
+              returnKeyType="done"
+              selectTextOnFocus
+            />
+            <Text style={styles.durationUnit}>min</Text>
+          </View>
 
           {/* Selected exercises */}
           {drafts.length > 0 && (
@@ -358,6 +380,28 @@ const styles = StyleSheet.create({
     paddingHorizontal: theme.spacing.lg,
     paddingVertical: theme.spacing.md,
     marginBottom: theme.spacing.xl,
+  },
+  durationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.sm,
+    marginBottom: theme.spacing.xl,
+  },
+  durationInput: {
+    ...theme.typography.monoDataSmall,
+    color: theme.colors.textPrimary,
+    backgroundColor: theme.colors.bgSurface3,
+    borderRadius: theme.radius.button,
+    borderWidth: 1,
+    borderColor: theme.colors.borderDefault,
+    paddingHorizontal: theme.spacing.lg,
+    paddingVertical: theme.spacing.md,
+    minWidth: 80,
+    textAlign: 'center',
+  },
+  durationUnit: {
+    ...theme.typography.captionMuted,
+    color: theme.colors.textTertiary,
   },
   draftList: {
     gap: theme.spacing.md,

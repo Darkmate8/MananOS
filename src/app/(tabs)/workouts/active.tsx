@@ -5,6 +5,7 @@ import {
   ScrollView,
   TextInput,
   Pressable,
+  Modal,
   StyleSheet,
   Alert,
   KeyboardAvoidingView,
@@ -12,7 +13,7 @@ import {
   type StyleProp,
   type ViewStyle,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import Animated, {
   useSharedValue,
@@ -86,14 +87,13 @@ function SetRow({
 
   const [weightStr, setWeightStr] = useState(set.weightKg?.toString() ?? '');
   const [repsStr, setRepsStr] = useState(set.reps?.toString() ?? '');
+  const [showTypePicker, setShowTypePicker] = useState(false);
   const checkScale = useSharedValue(1);
   const checkAnimStyle = useAnimatedStyle(() => ({ transform: [{ scale: checkScale.value }] }));
   const removeScale = useSharedValue(1);
   const removeAnimStyle = useAnimatedStyle(() => ({ transform: [{ scale: removeScale.value }] }));
-  const wScale = useSharedValue(1);
-  const wAnimStyle = useAnimatedStyle(() => ({ transform: [{ scale: wScale.value }] }));
-  const dScale = useSharedValue(1);
-  const dAnimStyle = useAnimatedStyle(() => ({ transform: [{ scale: dScale.value }] }));
+  const badgeScale = useSharedValue(1);
+  const badgeAnimStyle = useAnimatedStyle(() => ({ transform: [{ scale: badgeScale.value }] }));
 
   const commitWeight = useCallback(() => {
     const val = parseFloat(weightStr);
@@ -110,40 +110,61 @@ function SetRow({
 
   const badgeLabel = set.isWarmup ? 'W' : set.isDropSet ? 'D' : set.setIndex;
 
+  const SET_TYPES = [
+    { label: 'Normal Set',  isWarmup: false, isDropSet: false },
+    { label: 'Warm-up Set', isWarmup: true,  isDropSet: false },
+    { label: 'Drop Set',    isWarmup: false, isDropSet: true  },
+  ] as const;
+
   return (
     <View style={styles.setRow}>
-      <View style={[styles.setIndexBadge, set.isWarmup && styles.setIndexBadgeWarmup, set.isDropSet && !set.isWarmup && styles.setIndexBadgeDrop]}>
+      <AnimatedPressable
+        hitSlop={8}
+        onPressIn={() => { badgeScale.value = withTiming(0.97, { duration: theme.animation.press }); }}
+        onPressOut={() => { badgeScale.value = withTiming(1, { duration: theme.animation.press }); }}
+        onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          setShowTypePicker(true);
+        }}
+        style={[styles.setIndexBadge, set.isWarmup && styles.setIndexBadgeWarmup, set.isDropSet && !set.isWarmup && styles.setIndexBadgeDrop, badgeAnimStyle]}
+      >
         <Text style={styles.setIndex}>{badgeLabel}</Text>
-      </View>
-
-      {/* W / D type toggles */}
-      <AnimatedPressable
-        hitSlop={6}
-        onPressIn={() => { wScale.value = withTiming(0.97, { duration: theme.animation.press }); }}
-        onPressOut={() => { wScale.value = withTiming(1, { duration: theme.animation.press }); }}
-        onPress={() => {
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-          updateSet(exerciseId, set.id, { isWarmup: !set.isWarmup });
-        }}
-        style={[styles.typePill, set.isWarmup && styles.typePillActive, wAnimStyle]}
-      >
-        <Text style={[styles.typePillText, set.isWarmup && styles.typePillTextActive]}>W</Text>
       </AnimatedPressable>
 
-      <AnimatedPressable
-        hitSlop={6}
-        onPressIn={() => { dScale.value = withTiming(0.97, { duration: theme.animation.press }); }}
-        onPressOut={() => { dScale.value = withTiming(1, { duration: theme.animation.press }); }}
-        onPress={() => {
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-          updateSet(exerciseId, set.id, { isDropSet: !set.isDropSet });
-        }}
-        style={[styles.typePill, set.isDropSet && styles.typePillActive, dAnimStyle]}
+      <Modal
+        visible={showTypePicker}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowTypePicker(false)}
+        statusBarTranslucent
       >
-        <Text style={[styles.typePillText, set.isDropSet && styles.typePillTextActive]}>D</Text>
-      </AnimatedPressable>
+        <Pressable style={styles.pickerBackdrop} onPress={() => setShowTypePicker(false)}>
+          <View style={styles.pickerSheet}>
+            <Text style={styles.pickerTitle}>Set Type</Text>
+            {SET_TYPES.map((opt) => {
+              const isActive = opt.isWarmup === set.isWarmup && opt.isDropSet === set.isDropSet;
+              return (
+                <Pressable
+                  key={opt.label}
+                  style={[styles.pickerOption, isActive && styles.pickerOptionActive]}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    updateSet(exerciseId, set.id, { isWarmup: opt.isWarmup, isDropSet: opt.isDropSet });
+                    setShowTypePicker(false);
+                  }}
+                >
+                  <Text style={[styles.pickerOptionText, isActive && styles.pickerOptionTextActive]}>
+                    {opt.label}
+                  </Text>
+                  {isActive && <Text style={styles.pickerCheck}>✓</Text>}
+                </Pressable>
+              );
+            })}
+          </View>
+        </Pressable>
+      </Modal>
 
-      <View style={styles.setField}>
+      <View style={[styles.setField, styles.setFieldWeight]}>
         <TextInput
           style={styles.setInput}
           value={weightStr}
@@ -172,8 +193,6 @@ function SetRow({
         />
         <Text style={styles.setUnit}>reps</Text>
       </View>
-
-      <Text style={styles.setVolume}>{set.isWarmup ? '—' : computeVolume(weightKg, reps, isUnilateral)}</Text>
 
       <AnimatedPressable
         hitSlop={8}
@@ -218,8 +237,17 @@ function ExerciseCard({
 }) {
   const addSet = useSessionStore((s) => s.addSet);
   const removeExercise = useSessionStore((s) => s.removeExercise);
+  const setExerciseRestSeconds = useSessionStore((s) => s.setExerciseRestSeconds);
   const removeExScale = useSharedValue(1);
   const removeExAnimStyle = useAnimatedStyle(() => ({ transform: [{ scale: removeExScale.value }] }));
+
+  const [showRestPicker, setShowRestPicker] = useState(false);
+  const [restEditStr, setRestEditStr] = useState(
+    (exercise.restSecondsOverride ?? exercise.defaultRestSeconds)?.toString() ?? '',
+  );
+
+  const effectiveRest = exercise.restSecondsOverride ?? exercise.defaultRestSeconds;
+  const restLabel = effectiveRest != null ? `${effectiveRest}s` : 'auto';
 
   const volumeMultiplier = exercise.isUnilateral ? 2 : 1;
   const totalVolume = exercise.sets.reduce(
@@ -231,6 +259,17 @@ function ExerciseCard({
     <View style={styles.exerciseCard}>
       <View style={styles.exerciseHeader}>
         <Text style={styles.exerciseName}>{exercise.exerciseName}</Text>
+        <Pressable
+          hitSlop={8}
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            setRestEditStr((exercise.restSecondsOverride ?? exercise.defaultRestSeconds)?.toString() ?? '');
+            setShowRestPicker(true);
+          }}
+          style={styles.restBadge}
+        >
+          <Text style={styles.restBadgeText}>REST {restLabel}</Text>
+        </Pressable>
         <AnimatedPressable
           hitSlop={8}
           onPressIn={() => { removeExScale.value = withTiming(0.97, { duration: theme.animation.press }); }}
@@ -251,16 +290,83 @@ function ExerciseCard({
         </AnimatedPressable>
       </View>
 
+      <Modal
+        visible={showRestPicker}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowRestPicker(false)}
+        statusBarTranslucent
+      >
+        <Pressable style={styles.pickerBackdrop} onPress={() => setShowRestPicker(false)}>
+          <View style={styles.pickerSheet}>
+            <Text style={styles.pickerTitle}>Rest duration for {exercise.exerciseName}</Text>
+            <View style={styles.restInputRow}>
+              <TextInput
+                style={styles.restInput}
+                value={restEditStr}
+                onChangeText={setRestEditStr}
+                keyboardType="number-pad"
+                placeholder="seconds"
+                placeholderTextColor={theme.colors.textTertiary}
+                selectTextOnFocus
+                autoFocus
+              />
+              <Text style={styles.restInputUnit}>seconds</Text>
+            </View>
+            <View style={styles.restPresets}>
+              {[60, 90, 120, 180].map((s) => (
+                <Pressable
+                  key={s}
+                  style={[styles.restPresetChip, restEditStr === String(s) && styles.restPresetChipActive]}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    setRestEditStr(String(s));
+                  }}
+                >
+                  <Text style={[styles.restPresetText, restEditStr === String(s) && styles.restPresetTextActive]}>
+                    {s >= 60 ? `${s / 60}:00` : `${s}s`}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+            <View style={styles.restActions}>
+              <Pressable
+                style={styles.restClearBtn}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  setExerciseRestSeconds(exercise.exerciseId, null);
+                  setShowRestPicker(false);
+                }}
+              >
+                <Text style={styles.restClearText}>Reset to default</Text>
+              </Pressable>
+              <Pressable
+                style={styles.restConfirmBtn}
+                onPress={() => {
+                  const val = parseInt(restEditStr, 10);
+                  if (!isNaN(val) && val > 0) {
+                    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                    setExerciseRestSeconds(exercise.exerciseId, val);
+                  }
+                  setShowRestPicker(false);
+                }}
+              >
+                <Text style={styles.restConfirmText}>Set Rest</Text>
+              </Pressable>
+            </View>
+          </View>
+        </Pressable>
+      </Modal>
+
       <View style={styles.setHeader}>
         <Text style={[styles.setHeaderLabel, { width: 32 }]}>SET</Text>
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1.4 }}>
           <Text style={styles.setHeaderLabel}>WEIGHT</Text>
           {exercise.isUnilateral && (
             <Text style={styles.setHeaderCaption}>per arm</Text>
           )}
         </View>
         <Text style={[styles.setHeaderLabel, { flex: 1 }]}>REPS</Text>
-        <Text style={[styles.setHeaderLabel, { flex: 1 }]}>VOL</Text>
         <View style={{ width: 24 }} />
       </View>
 
@@ -298,7 +404,11 @@ function ExerciseCard({
   );
 }
 
+// Approximate rendered height of RestTimerOverlay (two rows + progress bar + padding)
+const REST_OVERLAY_HEIGHT = 110;
+
 export default function ActiveWorkoutScreen() {
+  const insets = useSafeAreaInsets();
   const sessionId = useSessionStore((s) => s.sessionId);
   const startedAt = useSessionStore((s) => s.startedAt);
   const exercises = useSessionStore((s) => s.exercises);
@@ -373,7 +483,7 @@ export default function ActiveWorkoutScreen() {
 
         {/* ── Exercise List ── */}
         <ScrollView
-          contentContainerStyle={styles.scroll}
+          contentContainerStyle={[styles.scroll, { paddingBottom: REST_OVERLAY_HEIGHT + insets.bottom + theme.spacing.lg }]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
@@ -492,6 +602,95 @@ const styles = StyleSheet.create({
     ...theme.typography.captionMuted,
     color: theme.colors.textTertiary,
   },
+  restBadge: {
+    paddingHorizontal: theme.spacing.sm,
+    paddingVertical: theme.spacing.xs,
+    borderRadius: theme.radius.pill,
+    borderWidth: 1,
+    borderColor: theme.colors.borderStrong,
+  },
+  restBadgeText: {
+    fontSize: 11,
+    fontFamily: theme.fonts.mono.fontFamily,
+    color: theme.colors.textSecondary,
+    letterSpacing: 0.5,
+  },
+  restInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.sm,
+    marginBottom: theme.spacing.md,
+  },
+  restInput: {
+    ...theme.typography.monoDataLarge,
+    color: theme.colors.textPrimary,
+    backgroundColor: theme.colors.bgCanvas,
+    borderRadius: theme.radius.button,
+    borderWidth: 1,
+    borderColor: theme.colors.borderStrong,
+    paddingHorizontal: theme.spacing.lg,
+    paddingVertical: theme.spacing.sm,
+    minWidth: 80,
+    textAlign: 'center',
+  },
+  restInputUnit: {
+    ...theme.typography.captionMuted,
+    color: theme.colors.textTertiary,
+  },
+  restPresets: {
+    flexDirection: 'row',
+    gap: theme.spacing.sm,
+    marginBottom: theme.spacing.lg,
+  },
+  restPresetChip: {
+    flex: 1,
+    paddingVertical: theme.spacing.sm,
+    borderRadius: theme.radius.button,
+    borderWidth: 1,
+    borderColor: theme.colors.borderStrong,
+    alignItems: 'center',
+  },
+  restPresetChipActive: {
+    backgroundColor: theme.colors.accentPrimaryMuted,
+    borderColor: theme.colors.accentPrimary,
+  },
+  restPresetText: {
+    fontSize: 13,
+    fontFamily: theme.fonts.mono.fontFamily,
+    color: theme.colors.textSecondary,
+  },
+  restPresetTextActive: {
+    color: theme.colors.accentPrimary,
+  },
+  restActions: {
+    flexDirection: 'row',
+    gap: theme.spacing.sm,
+  },
+  restClearBtn: {
+    flex: 1,
+    paddingVertical: theme.spacing.md,
+    borderRadius: theme.radius.button,
+    borderWidth: 1,
+    borderColor: theme.colors.borderStrong,
+    alignItems: 'center',
+  },
+  restClearText: {
+    fontSize: 14,
+    fontFamily: theme.fonts.body.fontFamily,
+    color: theme.colors.textSecondary,
+  },
+  restConfirmBtn: {
+    flex: 1,
+    paddingVertical: theme.spacing.md,
+    borderRadius: theme.radius.button,
+    backgroundColor: theme.colors.accentPrimary,
+    alignItems: 'center',
+  },
+  restConfirmText: {
+    fontSize: 14,
+    fontFamily: theme.fonts.bodyBold.fontFamily,
+    color: theme.colors.textPrimary,
+  },
   setHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -536,27 +735,55 @@ const styles = StyleSheet.create({
     color: theme.colors.textSecondary,
     fontWeight: '500',
   },
-  typePill: {
-    width: 22,
-    height: 22,
-    borderRadius: theme.radius.pill,
-    borderWidth: 1,
-    borderColor: theme.colors.borderStrong,
-    alignItems: 'center',
-    justifyContent: 'center',
+  pickerBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'flex-end',
   },
-  typePillActive: {
-    backgroundColor: theme.colors.accentPrimary,
-    borderColor: theme.colors.accentPrimary,
+  pickerSheet: {
+    backgroundColor: theme.colors.bgSurface1,
+    borderTopLeftRadius: theme.radius.card,
+    borderTopRightRadius: theme.radius.card,
+    paddingHorizontal: theme.spacing.xxl,
+    paddingTop: theme.spacing.lg,
+    paddingBottom: theme.spacing.massive,
+    gap: theme.spacing.xs,
   },
-  typePillText: {
-    fontSize: 10,
-    fontFamily: theme.fonts.bodyBold.fontFamily,
+  pickerTitle: {
+    fontSize: 12,
+    fontFamily: theme.fonts.body.fontFamily,
     color: theme.colors.textTertiary,
-    fontWeight: '500',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    marginBottom: theme.spacing.sm,
   },
-  typePillTextActive: {
+  pickerOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: theme.spacing.md,
+    paddingHorizontal: theme.spacing.md,
+    borderRadius: theme.radius.button,
+  },
+  pickerOptionActive: {
+    backgroundColor: theme.colors.accentPrimaryMuted,
+  },
+  pickerOptionText: {
+    fontSize: 16,
+    fontFamily: theme.fonts.body.fontFamily,
     color: theme.colors.textPrimary,
+  },
+  pickerOptionTextActive: {
+    fontFamily: theme.fonts.bodyBold.fontFamily,
+    color: theme.colors.accentPrimary,
+  },
+  pickerCheck: {
+    fontSize: 14,
+    fontFamily: theme.fonts.body.fontFamily,
+    color: theme.colors.accentPrimary,
+  },
+  setFieldWeight: {
+    flex: 1.4,
   },
   setField: {
     flex: 1,
@@ -581,13 +808,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontFamily: theme.fonts.body.fontFamily,
     color: theme.colors.textTertiary,
-  },
-  setVolume: {
-    flex: 1,
-    fontSize: 13,
-    fontFamily: theme.fonts.monoSmall.fontFamily,
-    color: theme.colors.accentPrimary,
-    textAlign: 'center',
   },
   checkBtn: {
     width: 28,

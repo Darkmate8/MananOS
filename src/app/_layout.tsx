@@ -161,15 +161,13 @@ const styles = StyleSheet.create({
   overlay: {
     flex: 1,
     justifyContent: 'center',
-    alignItems: 'center',
     backgroundColor: 'rgba(0,0,0,0.72)',
-    padding: theme.spacing.lg,
+    paddingHorizontal: theme.spacing.xxl,
   },
   sheet: {
     backgroundColor: theme.colors.bgSurface2,
     borderRadius: theme.radius.modal,
-    padding: theme.spacing.xl,
-    width: '100%',
+    padding: theme.spacing.xxl,
     gap: theme.spacing.md,
   },
   sheetTitle: {

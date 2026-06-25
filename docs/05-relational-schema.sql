@@ -79,14 +79,15 @@ create table workout_sets (
 
 -- 5. WORKOUT TEMPLATES
 create table workout_templates (
-  id          uuid primary key default gen_random_uuid(),
-  user_id     uuid not null references auth.users(id) on delete cascade,
-  name        text not null,
-  notes       text,
-  is_archived bool not null default false,
-  sort_order  int2 not null default 0,
-  created_at  timestamptz not null default now(),
-  updated_at  timestamptz not null default now(),
+  id                      uuid primary key default gen_random_uuid(),
+  user_id                 uuid not null references auth.users(id) on delete cascade,
+  name                    text not null,
+  notes                   text,
+  is_archived             bool not null default false,
+  sort_order              int2 not null default 0,
+  target_duration_minutes int2 check (target_duration_minutes > 0),
+  created_at              timestamptz not null default now(),
+  updated_at              timestamptz not null default now(),
   unique (user_id, name)
 );
 

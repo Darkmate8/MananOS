@@ -25,6 +25,7 @@ export interface TemplatePayload {
   templateId: string; // client-generated uuid for create; existing id for update
   name: string;
   notes: string | null;
+  targetDurationMinutes: number | null;
   exercises: TemplateExerciseDraft[];
 }
 
@@ -47,7 +48,7 @@ function buildExerciseRows(payload: TemplatePayload, userId: string): TemplateEx
   }));
 }
 
-function buildOptimisticTemplate(payload: TemplatePayload, userId: string): WorkoutTemplateDetail {
+function buildOptimisticTemplate(payload: TemplatePayload, userId: string, sortOrder = 0): WorkoutTemplateDetail {
   const now = new Date().toISOString();
   const rows = buildExerciseRows(payload, userId);
   const exercises: TemplateExerciseDetail[] = rows.map((row, i) => ({
@@ -70,12 +71,13 @@ function buildOptimisticTemplate(payload: TemplatePayload, userId: string): Work
     name: payload.name,
     notes: payload.notes,
     is_archived: false,
-    sort_order: 0,
+    sort_order: sortOrder,
+    target_duration_minutes: payload.targetDurationMinutes,
     created_at: now,
     updated_at: now,
     exercises,
     exerciseCount: exercises.length,
-    estimatedMinutes: Math.max(
+    estimatedMinutes: payload.targetDurationMinutes ?? Math.max(
       5,
       Math.round(exercises.reduce((s, e) => s + e.target_sets * (45 + (e.rest_seconds_override ?? e.defaultRestSeconds ?? 90)), 0) / 60),
     ),
@@ -88,6 +90,7 @@ async function upsertTemplateOnline(payload: TemplatePayload, userId: string): P
     user_id: userId,
     name: payload.name,
     notes: payload.notes,
+    target_duration_minutes: payload.targetDurationMinutes,
   };
   const { error: tplError } = await supabase.from('workout_templates').upsert(template);
   if (tplError) throw tplError;
@@ -122,10 +125,11 @@ function useSaveTemplate(mode: 'create' | 'update') {
       const queryKey = ['workout_templates', userId];
       await queryClient.cancelQueries({ queryKey });
       const previous = queryClient.getQueryData<WorkoutTemplateDetail[]>(queryKey);
-      const optimistic = buildOptimisticTemplate(payload, userId!);
+      const sortOrder = mode === 'create' ? (previous?.length ?? 0) : 0;
+      const optimistic = buildOptimisticTemplate(payload, userId!, sortOrder);
       queryClient.setQueryData<WorkoutTemplateDetail[]>(queryKey, (old) =>
         mode === 'create'
-          ? [optimistic, ...(old ?? [])]
+          ? [...(old ?? []), optimistic]
           : (old ?? []).map((t) => (t.id === payload.templateId ? optimistic : t)),
       );
       return { previous, queryKey };

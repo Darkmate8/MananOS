@@ -21,6 +21,7 @@ export interface ActiveExercise {
   exerciseName: string;
   isUnilateral: boolean;
   defaultRestSeconds: number | null;
+  restSecondsOverride: number | null;
   sets: ActiveSet[];
 }
 
@@ -50,6 +51,7 @@ interface SessionState {
   // Rest timer
   setRestTimer: (seconds: number) => void;
   clearRestTimer: () => void;
+  setExerciseRestSeconds: (exerciseId: string, seconds: number | null) => void;
   completeSet: (exerciseId: string, setId: string, restSeconds?: number) => void;
 }
 
@@ -87,7 +89,7 @@ export const useSessionStore = create<SessionState>()(
       addExercise: (exerciseId, exerciseName, isUnilateral = false, defaultRestSeconds = null) =>
         set((s) => {
           if (s.exercises.some((e) => e.exerciseId === exerciseId)) return s;
-          return { exercises: [...s.exercises, { exerciseId, exerciseName, isUnilateral, defaultRestSeconds, sets: [] }] };
+          return { exercises: [...s.exercises, { exerciseId, exerciseName, isUnilateral, defaultRestSeconds, restSecondsOverride: null, sets: [] }] };
         }),
 
       removeExercise: (exerciseId) =>
@@ -144,19 +146,30 @@ export const useSessionStore = create<SessionState>()(
       setRestTimer: (seconds) => set({ restTimerSeconds: seconds }),
       clearRestTimer: () => set({ restTimerSeconds: null }),
 
-      completeSet: (exerciseId, setId, restSeconds = 90) =>
+      setExerciseRestSeconds: (exerciseId, seconds) =>
         set((s) => ({
-          restTimerSeconds: restSeconds,
-          exercises: s.exercises.map((e) => {
-            if (e.exerciseId !== exerciseId) return e;
-            return {
-              ...e,
-              sets: e.sets.map((ws) =>
-                ws.id === setId ? { ...ws, isCompleted: true } : ws,
-              ),
-            };
-          }),
+          exercises: s.exercises.map((e) =>
+            e.exerciseId === exerciseId ? { ...e, restSecondsOverride: seconds } : e,
+          ),
         })),
+
+      completeSet: (exerciseId, setId, restSeconds = 90) =>
+        set((s) => {
+          const exercise = s.exercises.find((e) => e.exerciseId === exerciseId);
+          const effectiveRest = exercise?.restSecondsOverride ?? restSeconds;
+          return {
+            restTimerSeconds: effectiveRest,
+            exercises: s.exercises.map((e) => {
+              if (e.exerciseId !== exerciseId) return e;
+              return {
+                ...e,
+                sets: e.sets.map((ws) =>
+                  ws.id === setId ? { ...ws, isCompleted: true } : ws,
+                ),
+              };
+            }),
+          };
+        }),
     }),
     {
       name: 'session-store',
