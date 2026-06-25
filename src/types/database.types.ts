@@ -68,6 +68,9 @@ export interface Database {
           is_archived: boolean;
           is_unilateral: boolean;
           default_rest_seconds: number | null;
+          external_id: string | null;
+          instructions: string | null;
+          gif_url: string | null;
           created_at: string;
         };
         Insert: {
@@ -79,6 +82,9 @@ export interface Database {
           is_archived?: boolean;
           is_unilateral?: boolean;
           default_rest_seconds?: number | null;
+          external_id?: string | null;
+          instructions?: string | null;
+          gif_url?: string | null;
           created_at?: string;
         };
         Update: {
@@ -90,7 +96,79 @@ export interface Database {
           is_archived?: boolean;
           is_unilateral?: boolean;
           default_rest_seconds?: number | null;
+          external_id?: string | null;
+          instructions?: string | null;
+          gif_url?: string | null;
           created_at?: string;
+        };
+        Relationships: [];
+      };
+      workout_templates: {
+        Row: {
+          id: string;
+          user_id: string;
+          name: string;
+          notes: string | null;
+          is_archived: boolean;
+          sort_order: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          name: string;
+          notes?: string | null;
+          is_archived?: boolean;
+          sort_order?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          name?: string;
+          notes?: string | null;
+          is_archived?: boolean;
+          sort_order?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      workout_template_exercises: {
+        Row: {
+          id: string;
+          template_id: string;
+          user_id: string;
+          exercise_id: string;
+          exercise_order: number;
+          target_sets: number;
+          target_reps: number | null;
+          target_weight_kg: number | null;
+          rest_seconds_override: number | null;
+        };
+        Insert: {
+          id?: string;
+          template_id: string;
+          user_id: string;
+          exercise_id: string;
+          exercise_order: number;
+          target_sets?: number;
+          target_reps?: number | null;
+          target_weight_kg?: number | null;
+          rest_seconds_override?: number | null;
+        };
+        Update: {
+          id?: string;
+          template_id?: string;
+          user_id?: string;
+          exercise_id?: string;
+          exercise_order?: number;
+          target_sets?: number;
+          target_reps?: number | null;
+          target_weight_kg?: number | null;
+          rest_seconds_override?: number | null;
         };
         Relationships: [];
       };
@@ -510,6 +588,19 @@ export interface Database {
         };
         Relationships: [];
       };
+      v_weekly_nutrition: {
+        Row: {
+          user_id: string;
+          on_date: string;
+          kcal: number;
+          protein_g: number;
+          carbs_g: number;
+          fat_g: number;
+          kcal_goal: number;
+          protein_goal_g: number;
+        };
+        Relationships: [];
+      };
     };
     Functions: Record<string, never>;
   };
@@ -530,4 +621,7 @@ export type WaterLogRow = Database['public']['Tables']['water_logs']['Row'];
 export type WeightLogRow = Database['public']['Tables']['weight_logs']['Row'];
 export type StepsLogRow = Database['public']['Tables']['steps_logs']['Row'];
 export type ChatMessageRow = Database['public']['Tables']['chat_messages']['Row'];
+export type WorkoutTemplateRow = Database['public']['Tables']['workout_templates']['Row'];
+export type WorkoutTemplateExerciseRow = Database['public']['Tables']['workout_template_exercises']['Row'];
 export type TodayRingsRow = Database['public']['Views']['v_today_rings']['Row'];
+export type WeeklyNutritionRow = Database['public']['Views']['v_weekly_nutrition']['Row'];

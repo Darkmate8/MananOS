@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Pressable } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Pressable, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { format } from 'date-fns';
 import { router } from 'expo-router';
@@ -7,7 +7,8 @@ import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
 
 import { theme } from '@/lib/theme';
-import { useWorkoutSessions } from '@/hooks/useWorkoutSessions';
+import { useWorkoutSessions, type WorkoutSessionDetail } from '@/hooks/useWorkoutSessions';
+import { useDeleteWorkoutSession } from '@/hooks/useDeleteWorkoutSession';
 import { useSessionStore } from '@/store/sessionStore';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
@@ -28,16 +29,31 @@ function formatDuration(startedAt: string, endedAt: string | null): string {
 
 export default function WorkoutsScreen() {
   const { data: sessions, isLoading } = useWorkoutSessions();
+  const { mutate: deleteSession } = useDeleteWorkoutSession();
   const startSession = useSessionStore((s) => s.startSession);
   const hasActiveSession = useSessionStore((s) => s.hasActiveSession);
 
   const fabScale = useSharedValue(1);
   const fabAnimStyle = useAnimatedStyle(() => ({ transform: [{ scale: fabScale.value }] }));
+  const templatesScale = useSharedValue(1);
+  const templatesAnimStyle = useAnimatedStyle(() => ({ transform: [{ scale: templatesScale.value }] }));
 
   function handleStartWorkout() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     if (!hasActiveSession()) startSession();
     router.push('/(tabs)/workouts/active' as never);
+  }
+
+  function handleDeleteSession(session: WorkoutSessionDetail) {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    Alert.alert(
+      'Delete Workout',
+      `Delete "${session.title || 'Workout'}" and all its sets? This cannot be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Delete', style: 'destructive', onPress: () => deleteSession(session.id) },
+      ],
+    );
   }
 
   return (
@@ -46,7 +62,19 @@ export default function WorkoutsScreen() {
 
         <View style={styles.header}>
           <Text style={styles.dateMeta}>{format(new Date(), 'EEEE · MMM d').toUpperCase()}</Text>
-          <Text style={styles.title}>Workouts</Text>
+          <View style={styles.headerRow}>
+            <Text style={styles.title}>Workouts</Text>
+            <AnimatedPressable
+              style={[styles.templatesBtn, templatesAnimStyle]}
+              onPressIn={() => { templatesScale.value = withTiming(0.97, { duration: theme.animation.press }); }}
+              onPressOut={() => { templatesScale.value = withTiming(1, { duration: theme.animation.press }); }}
+              onPress={() => router.push('/(tabs)/workouts/templates' as never)}
+              hitSlop={8}
+            >
+              <Ionicons name="albums-outline" size={16} color={theme.colors.textSecondary} />
+              <Text style={styles.templatesBtnText}>Templates</Text>
+            </AnimatedPressable>
+          </View>
         </View>
 
         {isLoading ? (
@@ -66,7 +94,11 @@ export default function WorkoutsScreen() {
                 {(idx === 0 || formatDateLabel(sessions[idx - 1].ended_at!) !== formatDateLabel(session.ended_at!)) && (
                   <Text style={styles.dateSection}>{formatDateLabel(session.ended_at!)}</Text>
                 )}
-                <View style={styles.card}>
+                <Pressable
+                  style={styles.card}
+                  onLongPress={() => handleDeleteSession(session)}
+                  delayLongPress={450}
+                >
                   <View style={styles.cardHeader}>
                     <View style={styles.cardTitle}>
                       <Text style={styles.workoutName}>{session.title || 'Workout'}</Text>
@@ -94,7 +126,7 @@ export default function WorkoutsScreen() {
                       <Text style={styles.statValue}>{Math.round(session.totalVolume).toLocaleString()} kg</Text>
                     </View>
                   </View>
-                </View>
+                </Pressable>
               </View>
             ))}
           </View>
@@ -142,6 +174,27 @@ const styles = StyleSheet.create({
     ...theme.typography.displayHeadline,
     color: theme.colors.textPrimary,
     lineHeight: 34,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+  },
+  templatesBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.xs,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.sm,
+    borderRadius: theme.radius.pill,
+    borderWidth: 1,
+    borderColor: theme.colors.borderStrong,
+    backgroundColor: theme.colors.bgSurface1,
+    marginBottom: theme.spacing.xs,
+  },
+  templatesBtnText: {
+    ...theme.typography.captionMuted,
+    color: theme.colors.textSecondary,
   },
   loadingContainer: {
     paddingVertical: theme.spacing.xxxl,

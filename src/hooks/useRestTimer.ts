@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import * as Haptics from 'expo-haptics';
-import { Audio } from 'expo-av';
+import { createAudioPlayer, setAudioModeAsync } from 'expo-audio';
 import { useSessionStore } from '@/store/sessionStore';
 
 let audioModeConfigured = false;
@@ -9,9 +9,9 @@ async function configureAudioMode() {
   if (audioModeConfigured) return;
   audioModeConfigured = true;
   try {
-    await Audio.setAudioModeAsync({
-      staysActiveInBackground: true,
-      playsInSilentModeIOS: true,
+    await setAudioModeAsync({
+      shouldPlayInBackground: true,
+      playsInSilentMode: true,
     });
   } catch {
     // Non-critical — best effort
@@ -21,16 +21,14 @@ async function configureAudioMode() {
 async function playChime() {
   try {
     await configureAudioMode();
-    const { sound } = await Audio.Sound.createAsync(
+    const player = createAudioPlayer(
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       require('../../assets/sounds/chime.mp3'),
-      { shouldPlay: true, volume: 1.0 },
     );
-    sound.setOnPlaybackStatusUpdate((status) => {
-      if ('isLoaded' in status && status.isLoaded && status.didJustFinish) {
-        sound.unloadAsync();
-      }
-    });
+    player.volume = 1.0;
+    player.play();
+    // Chime is ~0.5s; release the player once playback has finished
+    setTimeout(() => { player.remove(); }, 2000);
   } catch {
     // Chime unavailable — haptic already fired
   }

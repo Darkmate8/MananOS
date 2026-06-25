@@ -14,7 +14,7 @@
     "ai": "^6.0.194",
     "date-fns": "^4.3.0",
     "expo": "~56.0.5",
-    "expo-av": "^16.0.8",
+    "expo-audio": "~56.0.12",
     "expo-constants": "~56.0.16",
     "expo-device": "~56.0.4",
     "expo-font": "~56.0.5",

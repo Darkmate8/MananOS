@@ -6,23 +6,22 @@ import { generateId } from '@/lib/generateId';
 import { todayDateStr } from '@/lib/habitUtils';
 import { getIsConnected } from '@/lib/netUtils';
 
-const CUP_INCREMENT = 1;
-
+// delta: +1 quick-add, -1 decrement. Cups never go below 0 (9.3).
 export function useWaterQuickAdd() {
   const userId = useAuthStore((s) => s.userId);
   const queryClient = useQueryClient();
 
-  return useMutation({
-    onMutate: async () => {
+  return useMutation<void, Error, number, { prev: { water_cups_today: number } | undefined }>({
+    onMutate: async (delta) => {
       await queryClient.cancelQueries({ queryKey: ['today_rings'] });
       const prev = queryClient.getQueryData<{ water_cups_today: number }>(['today_rings']);
       queryClient.setQueryData(['today_rings'], (old: Record<string, number> | undefined) =>
-        old ? { ...old, water_cups_today: (old.water_cups_today ?? 0) + CUP_INCREMENT } : old,
+        old ? { ...old, water_cups_today: Math.max(0, (old.water_cups_today ?? 0) + delta) } : old,
       );
       return { prev };
     },
 
-    mutationFn: async () => {
+    mutationFn: async (delta) => {
       const isConnected = await getIsConnected();
       const loggedOn = todayDateStr();
       const existingQuery = await supabase
@@ -32,9 +31,13 @@ export function useWaterQuickAdd() {
         .eq('logged_on', loggedOn)
         .maybeSingle();
 
+      const currentCups = existingQuery.data?.cups ?? 0;
+      const nextCups = Math.max(0, currentCups + delta);
+      if (nextCups === currentCups && delta < 0) return; // already at 0 — nothing to write
+
       const payload = existingQuery.data
-        ? { id: existingQuery.data.id, user_id: userId!, logged_on: loggedOn, cups: existingQuery.data.cups + CUP_INCREMENT }
-        : { id: generateId(), user_id: userId!, logged_on: loggedOn, cups: CUP_INCREMENT };
+        ? { id: existingQuery.data.id, user_id: userId!, logged_on: loggedOn, cups: nextCups }
+        : { id: generateId(), user_id: userId!, logged_on: loggedOn, cups: nextCups };
 
       if (isConnected) {
         const { error } = await supabase.from('water_logs').upsert(payload);

@@ -277,19 +277,34 @@ function MetricsPrompt({ lastWeightLogDate }: { lastWeightLogDate: string | null
 function WaterFAB() {
   const { mutate, isPending } = useWaterQuickAdd();
   const press = usePressFeedback();
+  const minusPress = usePressFeedback();
 
   return (
-    <AnimatedPressable
-      style={[styles.waterFab, press.animatedStyle, isPending && { opacity: 0.7 }]}
-      onPressIn={press.onPressIn}
-      onPressOut={press.onPressOut}
-      onPress={() => {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        mutate();
-      }}
-    >
-      <Ionicons name="water-outline" size={24} color={theme.colors.textPrimary} />
-    </AnimatedPressable>
+    <View style={styles.waterFabGroup}>
+      <AnimatedPressable
+        style={[styles.waterMinusBtn, minusPress.animatedStyle, isPending && { opacity: 0.7 }]}
+        onPressIn={minusPress.onPressIn}
+        onPressOut={minusPress.onPressOut}
+        onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          mutate(-1);
+        }}
+        hitSlop={8}
+      >
+        <Ionicons name="remove" size={18} color={theme.colors.textSecondary} />
+      </AnimatedPressable>
+      <AnimatedPressable
+        style={[styles.waterFab, press.animatedStyle, isPending && { opacity: 0.7 }]}
+        onPressIn={press.onPressIn}
+        onPressOut={press.onPressOut}
+        onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          mutate(1);
+        }}
+      >
+        <Ionicons name="water-outline" size={24} color={theme.colors.textPrimary} />
+      </AnimatedPressable>
+    </View>
   );
 }
 
@@ -626,10 +641,24 @@ const styles = StyleSheet.create({
     fontFamily: theme.fonts.body.fontFamily,
     color: theme.colors.textTertiary,
   },
-  waterFab: {
+  waterFabGroup: {
     position: 'absolute',
     bottom: theme.spacing.xxxl,
     right: theme.spacing.xxl,
+    alignItems: 'center',
+    gap: theme.spacing.sm,
+  },
+  waterMinusBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: theme.colors.bgSurface2,
+    borderWidth: 1,
+    borderColor: theme.colors.borderStrong,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  waterFab: {
     width: 56,
     height: 56,
     borderRadius: 28,

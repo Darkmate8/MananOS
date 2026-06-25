@@ -8,12 +8,12 @@ import { Feather, Ionicons } from '@expo/vector-icons';
 import { useQueryClient } from '@tanstack/react-query';
 
 import { theme } from '@/lib/theme';
-import { calcStreak, calcTotal, todayDateStr } from '@/lib/habitUtils';
+import { calcStreak, todayDateStr } from '@/lib/habitUtils';
 import { useTodayHabits, type HabitWithToday } from '@/hooks/useTodayHabits';
 import { useLogHabitCompletion } from '@/hooks/useLogHabitCompletion';
 import { useAllHabitsCompletions } from '@/hooks/useAllHabitsCompletions';
 import { useAuthStore } from '@/store/authStore';
-import { HabitContributionGrid } from '@/components/HabitContributionGrid';
+import { AggregateHabitGrid, type DayAggregate } from '@/components/AggregateHabitGrid';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 

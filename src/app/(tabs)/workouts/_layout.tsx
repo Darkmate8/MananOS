@@ -16,6 +16,7 @@ export default function WorkoutsLayout() {
         options={{ gestureEnabled: false }}
       />
       <Stack.Screen name="summary" />
+      <Stack.Screen name="templates" />
     </Stack>
   );
 }

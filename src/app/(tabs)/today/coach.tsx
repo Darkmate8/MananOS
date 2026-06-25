@@ -22,8 +22,6 @@ import { v4 as uuidv4 } from 'uuid';
 import { theme } from '@/lib/theme';
 import { getApiKey } from '@/hooks/useApiKeys';
 import { useCoachContext, type CoachContext } from '@/hooks/useCoachContext';
-import { supabase } from '@/lib/supabaseClient';
-import { useAuthStore } from '@/store/authStore';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -625,7 +623,6 @@ const noKeyStyles = StyleSheet.create({
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function CoachScreen() {
-  const userId = useAuthStore((s) => s.userId);
   const { data: context, isLoading: contextLoading } = useCoachContext();
 
   const [apiKey, setApiKey] = useState<string | null>(null);
@@ -650,17 +647,8 @@ export default function CoachScreen() {
     return () => { abortRef.current?.abort(); };
   }, []);
 
-  const persistMessages = useCallback(
-    async (userMsg: ChatMessage, assistantMsg: ChatMessage) => {
-      if (!userId) return;
-      await supabase.from('chat_messages').insert([
-        { id: userMsg.id, user_id: userId, role: 'user', content: userMsg.content },
-        { id: assistantMsg.id, user_id: userId, role: 'assistant', content: assistantMsg.content },
-      ]);
-    },
-    [userId],
-  );
-
+  // 9.4: Coach sessions are ephemeral — messages live only in component state,
+  // nothing is loaded on mount and nothing is written to chat_messages.
   const handleSend = useCallback(async () => {
     const trimmed = inputText.trim();
     if (!trimmed || isStreaming || !apiKey) return;
@@ -707,7 +695,6 @@ export default function CoachScreen() {
       setMessages((prev) => [assistantMsg, ...prev]);
       setStreamingMessage('');
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      persistMessages(userMsg, assistantMsg);
     } catch (err: unknown) {
       if (err instanceof Error && err.name === 'AbortError') return;
       setError('Failed to reach the coach. Check your API key and connection.');
@@ -716,7 +703,7 @@ export default function CoachScreen() {
       setIsStreaming(false);
       abortRef.current = null;
     }
-  }, [inputText, isStreaming, apiKey, messages, context, persistMessages]);
+  }, [inputText, isStreaming, apiKey, messages, context]);
 
   const renderItem = useCallback(
     ({ item, index }: { item: ChatMessage; index: number }) => {
