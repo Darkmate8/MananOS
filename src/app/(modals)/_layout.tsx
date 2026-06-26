@@ -14,6 +14,7 @@ export default function ModalsLayout() {
       }}
     >
       <Stack.Screen name="exercise-search" />
+      <Stack.Screen name="exercise-progress" />
       <Stack.Screen name="create-habit" />
       <Stack.Screen name="create-template" />
       <Stack.Screen name="settings" />

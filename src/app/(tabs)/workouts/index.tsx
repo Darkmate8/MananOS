@@ -106,12 +106,21 @@ export default function WorkoutsScreen() {
                     </View>
                   </View>
 
-                  {session.exerciseNames.length > 0 && (
+                  {(session.sessionExercises?.length ?? 0) > 0 && (
                     <View style={styles.exerciseList}>
-                      {session.exerciseNames.map((name, i) => (
-                        <Text key={i} style={styles.exerciseName}>
-                          {name}
-                        </Text>
+                      {(session.sessionExercises ?? []).map((ex) => (
+                        <Pressable
+                          key={ex.id}
+                          onPress={() =>
+                            router.push({
+                              pathname: '/(modals)/exercise-progress' as never,
+                              params: { exerciseId: ex.id, exerciseName: ex.name },
+                            })
+                          }
+                          hitSlop={4}
+                        >
+                          <Text style={styles.exerciseName}>{ex.name}</Text>
+                        </Pressable>
                       ))}
                     </View>
                   )}

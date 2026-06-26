@@ -45,10 +45,12 @@ function buildOptimisticSession(payload: FinishPayload, userId: string): Workout
   const sets = buildSets(payload, userId);
   const seenExercises = new Set<string>();
   const exerciseNames: string[] = [];
+  const sessionExercises: { id: string; name: string }[] = [];
   for (const ex of payload.exercises) {
     if (!seenExercises.has(ex.exerciseId)) {
       seenExercises.add(ex.exerciseId);
       exerciseNames.push(ex.exerciseName);
+      sessionExercises.push({ id: ex.exerciseId, name: ex.exerciseName });
     }
   }
   const totalVolume = payload.exercises.reduce(
@@ -73,6 +75,7 @@ function buildOptimisticSession(payload: FinishPayload, userId: string): Workout
     setCount: sets.length,
     totalVolume,
     exerciseNames,
+    sessionExercises,
   };
 }
 

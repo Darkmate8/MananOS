@@ -14,32 +14,31 @@ import { createClient } from '@supabase/supabase-js';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
-const API_URL = 'https://exercisedb.dev/api/v2/exercises?limit=1000';
+// Free, no-auth exercise dataset (~900 exercises) from github.com/yuhonas/free-exercise-db
+const API_URL = 'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/dist/exercises.json';
 const COMPOUND_KEYWORDS = ['squat', 'deadlift', 'bench', 'row', 'press'];
-const UNILATERAL_KEYWORDS = ['single', 'unilateral'];
+const UNILATERAL_KEYWORDS = ['single', 'unilateral', 'one-arm', 'one arm'];
 
 interface ExerciseDbItem {
-  exerciseId?: string;
   id?: string;
   name: string;
-  bodyParts?: string[];
+  // free-exercise-db fields
+  category?: string;
+  equipment?: string[];
+  muscles?: string[];
+  muscles_secondary?: string[];
+  // legacy exercisedb.dev fields
   bodyPart?: string;
-  equipments?: string[];
-  equipment?: string;
   gifUrl?: string;
   instructions?: string[] | string;
 }
 
 interface SeedRow {
   user_id: string;
-  external_id: string;
   name: string;
   muscle_group: string | null;
   equipment: string | null;
-  is_unilateral: boolean;
-  default_rest_seconds: number;
-  gif_url: string | null;
-  instructions: string | null;
+  is_archived: boolean;
 }
 
 function loadEnvUrl(): string {
@@ -64,25 +63,21 @@ function deriveRestSeconds(name: string, equipment: string | null): number {
 }
 
 function toRow(item: ExerciseDbItem, userId: string): SeedRow | null {
-  const externalId = item.exerciseId ?? item.id;
-  if (!externalId || !item.name) return null;
+  if (!item.name) return null;
 
-  const muscleGroup = item.bodyParts?.[0] ?? item.bodyPart ?? null;
-  const equipment = item.equipments?.[0] ?? item.equipment ?? null;
-  const instructions = Array.isArray(item.instructions)
-    ? item.instructions.join('\n')
-    : item.instructions ?? null;
+  const equipmentRaw = Array.isArray(item.equipment)
+    ? item.equipment[0] ?? null
+    : null;
+  const muscleGroup = Array.isArray(item.muscles) && item.muscles.length > 0
+    ? item.muscles[0]
+    : item.category ?? item.bodyPart ?? null;
 
   return {
     user_id: userId,
-    external_id: externalId,
     name: item.name,
     muscle_group: muscleGroup,
-    equipment,
-    is_unilateral: deriveIsUnilateral(item.name, equipment),
-    default_rest_seconds: deriveRestSeconds(item.name, equipment),
-    gif_url: item.gifUrl ?? null,
-    instructions,
+    equipment: equipmentRaw,
+    is_archived: false,
   };
 }
 
@@ -124,7 +119,7 @@ async function main(): Promise<void> {
     const chunk = rows.slice(i, i + CHUNK);
     const { error } = await supabase
       .from('exercises')
-      .upsert(chunk, { onConflict: 'user_id,external_id' });
+      .upsert(chunk, { onConflict: 'user_id,name' });
     if (error) throw new Error(`Upsert failed at chunk ${i / CHUNK}: ${error.message}`);
     upserted += chunk.length;
     console.log(`Upserted ${upserted}/${rows.length}`);

@@ -5,10 +5,16 @@ import type { Database } from '@/types/database.types';
 
 export type WorkoutSessionRow = Database['public']['Tables']['workout_sessions']['Row'];
 
+export interface SessionExercise {
+  id: string;
+  name: string;
+}
+
 export interface WorkoutSessionDetail extends WorkoutSessionRow {
   setCount: number;
   totalVolume: number;
   exerciseNames: string[];
+  sessionExercises?: SessionExercise[];
 }
 
 type SetWithExercise = {
@@ -50,11 +56,15 @@ async function fetchWorkoutSessions(userId: string): Promise<WorkoutSessionDetai
     const sessionSets = setsBySession.get(session.id) ?? [];
     const seenExerciseIds = new Set<string>();
     const exerciseNames: string[] = [];
+    const sessionExercises: SessionExercise[] = [];
 
     sessionSets.forEach((s) => {
       if (!seenExerciseIds.has(s.exercise_id)) {
         seenExerciseIds.add(s.exercise_id);
-        if (s.exercises?.name) exerciseNames.push(s.exercises.name);
+        if (s.exercises?.name) {
+          exerciseNames.push(s.exercises.name);
+          sessionExercises.push({ id: s.exercise_id, name: s.exercises.name });
+        }
       }
     });
 
@@ -65,6 +75,7 @@ async function fetchWorkoutSessions(userId: string): Promise<WorkoutSessionDetai
       setCount: sessionSets.length,
       totalVolume,
       exerciseNames,
+      sessionExercises,
     };
   });
 }
