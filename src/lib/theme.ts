@@ -22,6 +22,7 @@ export const theme = {
     // Activity Ring Colors
     ringSteps: "#D97757",
     ringWater: "#6A8CAF",
+    ringWaterMuted: "rgba(106, 140, 175, 0.15)",
     ringCalories: "#788C5D",
 
     // Semantic Signals

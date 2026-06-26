@@ -5,16 +5,13 @@ import { router } from 'expo-router';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { Feather, Ionicons } from '@expo/vector-icons';
-import { useQueryClient } from '@tanstack/react-query';
 
 import { theme } from '@/lib/theme';
-import { calcStreak, calcTotal, todayDateStr } from '@/lib/habitUtils';
+import { calcStreak, todayDateStr } from '@/lib/habitUtils';
 import { useTodayHabits, type HabitWithToday } from '@/hooks/useTodayHabits';
 import { useLogHabitCompletion } from '@/hooks/useLogHabitCompletion';
 import { useAllHabitsCompletions } from '@/hooks/useAllHabitsCompletions';
-import { useAuthStore } from '@/store/authStore';
 import { AggregateHabitGrid, type DayAggregate } from '@/components/AggregateHabitGrid';
-import { HabitContributionGrid } from '@/components/HabitContributionGrid';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
@@ -102,28 +99,6 @@ function HabitListRow({
   );
 }
 
-// ─── Animated sub-components ──────────────────────────────────────────────────
-
-function DonePill({ isDone, onPress }: { isDone: boolean; onPress: () => void }) {
-  const press = useSharedValue(1);
-  const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: press.value }] }));
-  return (
-    <AnimatedPressable
-      onPressIn={() => { press.value = withTiming(0.97, { duration: theme.animation.press }); }}
-      onPressOut={() => { press.value = withTiming(1, { duration: theme.animation.press }); }}
-      onPress={onPress}
-      style={[styles.donePill, isDone && styles.donePillActive, animStyle]}
-    >
-      {isDone && (
-        <Feather name="check" size={11} color={theme.colors.textPrimary} style={{ marginRight: 4 }} />
-      )}
-      <Text style={[styles.donePillText, isDone && styles.donePillTextActive]}>
-        {isDone ? 'Done today' : 'Mark done'}
-      </Text>
-    </AnimatedPressable>
-  );
-}
-
 function AddPressable({ onPress, style, hitSlop, children }: { onPress: () => void; style?: object; hitSlop?: number; children: React.ReactNode }) {
   const press = useSharedValue(1);
   const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: press.value }] }));
@@ -140,69 +115,12 @@ function AddPressable({ onPress, style, hitSlop, children }: { onPress: () => vo
   );
 }
 
-// ─── Featured Habit Card ───────────────────────────────────────────────────────
-
-function FeaturedCard({
-  habit,
-  completionsMap,
-  onTodayTap,
-}: {
-  habit: HabitWithToday;
-  completionsMap: Record<string, number>;
-  onTodayTap: () => void;
-}) {
-  const streak = useMemo(
-    () => calcStreak(completionsMap, habit.target_per_day),
-    [completionsMap, habit.target_per_day],
-  );
-  const total = useMemo(
-    () => calcTotal(completionsMap, habit.target_per_day),
-    [completionsMap, habit.target_per_day],
-  );
-  const isDone = habit.today_count >= habit.target_per_day;
-
-  return (
-    <View style={styles.featuredCard}>
-      {/* Top row: name + done pill */}
-      <View style={styles.featuredHeader}>
-        <Text style={styles.featuredName} numberOfLines={2}>{habit.name}</Text>
-        <DonePill isDone={isDone} onPress={onTodayTap} />
-      </View>
-
-      {/* Streak line */}
-      <View style={styles.featuredStreakRow}>
-        <Ionicons name="flame" size={12} color={theme.colors.accentPrimary} />
-        <Text style={styles.featuredStreakText}>
-          {streak} day streak · {total} of 365
-        </Text>
-      </View>
-
-      {/* Grid */}
-      <View style={styles.featuredGrid}>
-        <HabitContributionGrid
-          completionsMap={completionsMap}
-          targetPerDay={habit.target_per_day}
-          onTodayTap={onTodayTap}
-          showLegend
-          showHint
-        />
-      </View>
-    </View>
-  );
-}
-
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function HabitsScreen() {
-  const userId = useAuthStore((s) => s.userId);
-  const queryClient = useQueryClient();
-  const todayStr = useMemo(() => todayDateStr(), []);
-
-  const { data: habits, isLoading } = useTodayHabits();
+  const { data: habits, isLoading, isError } = useTodayHabits();
   const { mutate: logCompletion } = useLogHabitCompletion();
   const { data: allCompletions } = useAllHabitsCompletions();
-
-  const featuredHabit = habits?.[0];
 
   const doneCount = useMemo(
     () => (habits ?? []).filter((h) => h.today_count >= h.target_per_day).length,
@@ -218,6 +136,25 @@ export default function HabitsScreen() {
     return map;
   }, [habits, allCompletions]);
 
+  const aggregateMap = useMemo((): Record<string, DayAggregate> => {
+    if (!habits || !allCompletions || habits.length === 0) return {};
+    const allDates = new Set<string>();
+    for (const dateMap of Object.values(allCompletions)) {
+      for (const date of Object.keys(dateMap)) allDates.add(date);
+    }
+    const totalHabits = habits.length;
+    const result: Record<string, DayAggregate> = {};
+    for (const date of allDates) {
+      let completed = 0;
+      for (const habit of habits) {
+        const count = allCompletions[habit.id]?.[date] ?? 0;
+        if (count >= habit.target_per_day) completed++;
+      }
+      result[date] = { completed, total: totalHabits };
+    }
+    return result;
+  }, [habits, allCompletions]);
+
   const handleCheck = useCallback(
     (habit: HabitWithToday) => {
       logCompletion({
@@ -228,35 +165,6 @@ export default function HabitsScreen() {
     },
     [logCompletion],
   );
-
-  const handleFeaturedTap = useCallback(() => {
-    if (!featuredHabit) return;
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-
-    const currentCount = featuredHabit.today_count;
-    const newCount = currentCount >= featuredHabit.target_per_day ? 0 : currentCount + 1;
-
-    // Optimistic update on the bulk-completions cache so the grid dot reflects immediately
-    queryClient.setQueryData<Record<string, Record<string, number>>>(
-      ['all_habits_completions', userId],
-      (old) =>
-        old
-          ? {
-              ...old,
-              [featuredHabit.id]: { ...(old[featuredHabit.id] ?? {}), [todayStr]: newCount },
-            }
-          : old,
-    );
-
-    logCompletion(
-      { habitId: featuredHabit.id, currentCount, targetPerDay: featuredHabit.target_per_day },
-      {
-        onSettled: () => {
-          queryClient.invalidateQueries({ queryKey: ['all_habits_completions', userId] });
-        },
-      },
-    );
-  }, [featuredHabit, userId, todayStr, queryClient, logCompletion]);
 
   const totalCount = habits?.length ?? 0;
 
@@ -279,20 +187,31 @@ export default function HabitsScreen() {
           </View>
         </View>
 
-        {/* ─── Featured Card ──────────────────────────────── */}
-        {!isLoading && featuredHabit && (
+        {/* ─── Error State ─────────────────────────────────── */}
+        {isError && !isLoading && (
           <View style={styles.section}>
-            <FeaturedCard
-              habit={featuredHabit}
-              completionsMap={allCompletions?.[featuredHabit.id] ?? {}}
-              onTodayTap={handleFeaturedTap}
-            />
+            <View style={styles.errorCard}>
+              <Feather name="alert-circle" size={18} color={theme.colors.error} />
+              <Text style={styles.errorText}>Could not load habits. Check your connection.</Text>
+            </View>
+          </View>
+        )}
+
+        {/* ─── Aggregate Grid ──────────────────────────────── */}
+        {!isLoading && !isError && habits && habits.length > 0 && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>All Habits · 52 Weeks</Text>
+            </View>
+            <View style={styles.gridCard}>
+              <AggregateHabitGrid aggregateMap={aggregateMap} totalHabits={habits.length} />
+            </View>
           </View>
         )}
 
         {/* ─── All Habits List ─────────────────────────────── */}
         <View style={styles.section}>
-          {!isLoading && habits && habits.length > 0 ? (
+          {!isLoading && !isError && habits && habits.length > 0 ? (
             <>
               <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>All habits</Text>
@@ -313,7 +232,7 @@ export default function HabitsScreen() {
                 ))}
               </View>
             </>
-          ) : !isLoading ? (
+          ) : !isLoading && !isError ? (
             <View style={styles.emptyCard}>
               <Text style={styles.emptyTitle}>No habits yet</Text>
               <Text style={styles.emptyBody}>
@@ -381,69 +300,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: theme.spacing.xxl,
     marginBottom: theme.spacing.xxl,
   },
-
-  // ─── Featured Card ───────────────────────────────────────────────────────────
-  featuredCard: {
-    backgroundColor: theme.colors.bgSurface1,
-    borderRadius: theme.radius.card,
-    borderWidth: 1,
-    borderColor: theme.colors.borderDefault,
-    overflow: 'hidden',
-  },
-  featuredHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    padding: theme.spacing.lg,
-    paddingBottom: theme.spacing.sm,
-    gap: theme.spacing.md,
-  },
-  featuredName: {
-    flex: 1,
-    fontSize: 20,
-    fontFamily: theme.fonts.display.fontFamily,
-    color: theme.colors.textPrimary,
-    lineHeight: 26,
-  },
-  donePill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.xs,
-    borderRadius: theme.radius.pill,
-    borderWidth: 1,
-    borderColor: theme.colors.borderStrong,
-  },
-  donePillActive: {
-    backgroundColor: theme.colors.accentPrimary,
-    borderColor: theme.colors.accentPrimary,
-  },
-  donePillText: {
-    fontSize: 12,
-    fontFamily: theme.fonts.bodyBold.fontFamily,
-    color: theme.colors.textSecondary,
-  },
-  donePillTextActive: {
-    color: theme.colors.textPrimary,
-  },
-  featuredStreakRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: theme.spacing.xs,
-    paddingHorizontal: theme.spacing.lg,
-    paddingBottom: theme.spacing.sm,
-  },
-  featuredStreakText: {
-    fontSize: 12,
-    fontFamily: theme.fonts.mono.fontFamily,
-    color: theme.colors.textTertiary,
-  },
-  featuredGrid: {
-    paddingHorizontal: theme.spacing.md,
-    paddingBottom: theme.spacing.md,
-  },
-
-  // ─── All Habits Section ──────────────────────────────────────────────────────
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'baseline',
@@ -460,6 +316,35 @@ const styles = StyleSheet.create({
     fontFamily: theme.fonts.body.fontFamily,
     color: theme.colors.accentPrimary,
   },
+
+  // ─── Aggregate Grid ──────────────────────────────────────────────────────────
+  gridCard: {
+    backgroundColor: theme.colors.bgSurface1,
+    borderRadius: theme.radius.card,
+    borderWidth: 1,
+    borderColor: theme.colors.borderDefault,
+    padding: theme.spacing.lg,
+  },
+
+  // ─── Error ───────────────────────────────────────────────────────────────────
+  errorCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.sm,
+    backgroundColor: theme.colors.bgSurface1,
+    borderRadius: theme.radius.card,
+    borderWidth: 1,
+    borderColor: theme.colors.error,
+    padding: theme.spacing.lg,
+  },
+  errorText: {
+    flex: 1,
+    fontSize: 13,
+    fontFamily: theme.fonts.body.fontFamily,
+    color: theme.colors.error,
+  },
+
+  // ─── All Habits Section ──────────────────────────────────────────────────────
   listContainer: {
     backgroundColor: theme.colors.bgSurface1,
     borderRadius: theme.radius.card,

@@ -107,6 +107,7 @@ export function useLogHabitCompletion() {
 
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['today_habits', userId] });
+      queryClient.invalidateQueries({ queryKey: ['all_habits_completions', userId] });
     },
   });
 }

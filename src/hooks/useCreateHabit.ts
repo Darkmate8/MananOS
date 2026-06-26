@@ -63,8 +63,11 @@ export function useCreateHabit() {
       };
 
       if (isConnected) {
-        const { error } = await supabase.from('habits').insert(payload);
-        if (error) throw error;
+        const { error } = await supabase.from('habits').upsert(payload, { onConflict: 'id' });
+        if (error) {
+          if (error.code === '23505') throw new Error('A habit with this name already exists.');
+          throw new Error(error.message);
+        }
       } else {
         const queueKey = `${userId}_sync_queue`;
         const raw = storage.getString(queueKey);

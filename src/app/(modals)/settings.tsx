@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -16,6 +16,9 @@ import * as Haptics from 'expo-haptics';
 import { useApiKeys } from '@/hooks/useApiKeys';
 import { useNotifPrefs } from '@/hooks/useNotifPrefs';
 import { useNotificationPermissions } from '@/hooks/useNotificationPermissions';
+import { useProfile } from '@/hooks/useProfile';
+import { useUpdateProfile } from '@/hooks/useUpdateProfile';
+import { storage } from '@/lib/mmkv';
 import { theme } from '@/lib/theme';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
@@ -35,16 +38,36 @@ export default function SettingsModal() {
     useApiKeys();
   const { prefs, updatePrefs } = useNotifPrefs();
   const { granted, checked, request } = useNotificationPermissions();
+  const { data: profile } = useProfile();
+  const { mutate: saveGoals, isPending: savingGoals } = useUpdateProfile();
 
   const [showOpenai, setShowOpenai] = useState(false);
   const [showGemini, setShowGemini] = useState(false);
   const [saveState, setSaveState] = useState<SaveState>('idle');
+  const [goalsSaveState, setGoalsSaveState] = useState<SaveState>('idle');
+
+  const [kcalGoal, setKcalGoal] = useState('');
+  const [proteinGoal, setProteinGoal] = useState('');
+  const [stepsGoal, setStepsGoal] = useState('');
+  const [waterGoal, setWaterGoal] = useState('');
+  const [cupSizeMl, setCupSizeMl] = useState(
+    () => String(storage.getNumber('water_cup_size_ml') ?? 240),
+  );
+
+  useEffect(() => {
+    if (!profile) return;
+    setKcalGoal(String(profile.kcal_goal));
+    setProteinGoal(String(profile.protein_goal_g));
+    setStepsGoal(String(profile.steps_goal));
+    setWaterGoal(String(profile.water_goal_cups));
+  }, [profile]);
 
   const openaiEyePress = usePressFeedback();
   const geminiEyePress = usePressFeedback();
   const savePress = usePressFeedback();
   const clearPress = usePressFeedback();
   const permissionPress = usePressFeedback();
+  const saveGoalsPress = usePressFeedback();
 
   async function handleSave() {
     try {
@@ -62,6 +85,33 @@ export default function SettingsModal() {
     await clearAll();
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setSaveState('idle');
+  }
+
+  function handleSaveGoals() {
+    const kcal = parseInt(kcalGoal, 10);
+    const protein = parseInt(proteinGoal, 10);
+    const steps = parseInt(stepsGoal, 10);
+    const water = parseFloat(waterGoal);
+    const cupSize = parseInt(cupSizeMl, 10);
+
+    if (!kcal || !protein || !steps || !water || !cupSize) return;
+
+    storage.set('water_cup_size_ml', cupSize);
+
+    saveGoals(
+      { kcal_goal: kcal, protein_goal_g: protein, steps_goal: steps, water_goal_cups: water },
+      {
+        onSuccess: () => {
+          setGoalsSaveState('saved');
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          setTimeout(() => setGoalsSaveState('idle'), 2000);
+        },
+        onError: () => {
+          setGoalsSaveState('error');
+          setTimeout(() => setGoalsSaveState('idle'), 2000);
+        },
+      },
+    );
   }
 
   if (!loaded) {
@@ -272,6 +322,69 @@ export default function SettingsModal() {
           />
         </View>
 
+        {/* Goals Section */}
+        <Text style={[styles.sectionLabel, { marginTop: theme.spacing.xxl }]}>Goals</Text>
+        <Text style={styles.sectionCaption}>
+          Daily targets used for ring progress and nutrition deficit tracking.
+        </Text>
+
+        <GoalField
+          label="Daily Kcal Target"
+          value={kcalGoal}
+          onChangeText={setKcalGoal}
+          suffix="kcal"
+        />
+        <GoalField
+          label="Daily Protein Target"
+          value={proteinGoal}
+          onChangeText={setProteinGoal}
+          suffix="g"
+        />
+        <GoalField
+          label="Daily Steps Goal"
+          value={stepsGoal}
+          onChangeText={setStepsGoal}
+          suffix="steps"
+        />
+        <GoalField
+          label="Daily Water Goal"
+          value={waterGoal}
+          onChangeText={setWaterGoal}
+          suffix="cups"
+        />
+        <GoalField
+          label="Water Cup Size"
+          value={cupSizeMl}
+          onChangeText={setCupSizeMl}
+          suffix="ml"
+          caption="Stored on device only — not synced."
+        />
+
+        <AnimatedPressable
+          onPressIn={saveGoalsPress.onPressIn}
+          onPressOut={saveGoalsPress.onPressOut}
+          onPress={handleSaveGoals}
+          disabled={savingGoals}
+          style={[
+            styles.saveButton,
+            { marginBottom: theme.spacing.xxl },
+            goalsSaveState === 'saved' && styles.saveButtonSuccess,
+            goalsSaveState === 'error' && styles.saveButtonError,
+            saveGoalsPress.animatedStyle,
+          ]}
+        >
+          {savingGoals ? (
+            <ActivityIndicator size="small" color={theme.colors.textPrimary} />
+          ) : goalsSaveState === 'saved' ? (
+            <Ionicons name="checkmark" size={16} color={theme.colors.textPrimary} />
+          ) : null}
+          {!savingGoals && (
+            <Text style={styles.saveButtonLabel}>
+              {goalsSaveState === 'saved' ? 'Saved' : goalsSaveState === 'error' ? 'Error' : 'Save Goals'}
+            </Text>
+          )}
+        </AnimatedPressable>
+
         {/* Actions */}
         <View style={styles.actions}>
           <AnimatedPressable
@@ -316,6 +429,39 @@ export default function SettingsModal() {
         </View>
       </ScrollView>
     </SafeAreaView>
+  );
+}
+
+function GoalField({
+  label,
+  value,
+  onChangeText,
+  suffix,
+  caption,
+}: {
+  label: string;
+  value: string;
+  onChangeText: (v: string) => void;
+  suffix: string;
+  caption?: string;
+}) {
+  return (
+    <View style={styles.fieldGroup}>
+      <Text style={styles.fieldLabel}>{label}</Text>
+      {caption && <Text style={styles.fieldCaption}>{caption}</Text>}
+      <View style={styles.inputRow}>
+        <TextInput
+          style={styles.input}
+          value={value}
+          onChangeText={onChangeText}
+          keyboardType="numeric"
+          returnKeyType="done"
+          placeholderTextColor={theme.colors.textTertiary}
+          placeholder="0"
+        />
+        <Text style={styles.goalSuffix}>{suffix}</Text>
+      </View>
+    </View>
   );
 }
 
@@ -522,6 +668,12 @@ const styles = StyleSheet.create({
     paddingLeft: theme.spacing.sm,
     paddingVertical: theme.spacing.sm,
   },
+  goalSuffix: {
+    fontSize: 13,
+    fontFamily: theme.fonts.body.fontFamily,
+    color: theme.colors.textTertiary,
+    paddingRight: theme.spacing.md,
+  },
   actions: {
     flexDirection: 'row',
     gap: theme.spacing.md,
@@ -601,7 +753,7 @@ const styles = StyleSheet.create({
   },
   chipActive: {
     borderColor: theme.colors.ringWater,
-    backgroundColor: 'rgba(106, 140, 175, 0.15)',
+    backgroundColor: theme.colors.ringWaterMuted,
   },
   chipLabel: {
     fontSize: 13,

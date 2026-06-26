@@ -48,7 +48,7 @@ export function useTodayHabits() {
   return useQuery<HabitWithToday[]>({
     queryKey: ['today_habits', userId],
     enabled: !!userId,
-    staleTime: 1000 * 60 * 2,
+    staleTime: 0,
     queryFn: () => fetchTodayHabits(userId!),
   });
 }

@@ -43,8 +43,8 @@ export function useUpdateProfile() {
 
       const isConnected = await getIsConnected();
       if (isConnected) {
-        const { error } = await supabase.from('profile').upsert(row);
-        if (error) throw error;
+        const { error } = await supabase.from('profile').upsert(row, { onConflict: 'user_id' });
+        if (error) throw new Error(error.message);
       } else {
         const queue = JSON.parse(getSyncQueue(userId)) as unknown[];
         queue.push({
@@ -67,6 +67,7 @@ export function useUpdateProfile() {
       if (context?.queryKey) {
         queryClient.invalidateQueries({ queryKey: context.queryKey });
       }
+      queryClient.invalidateQueries({ queryKey: ['nutrition_today', userId] });
       queryClient.invalidateQueries({ queryKey: ['nutrition_history_7d', userId] });
       queryClient.invalidateQueries({ queryKey: ['weekly_nutrition', userId] });
     },

@@ -8,6 +8,7 @@ import { Feather } from '@expo/vector-icons';
 
 import { theme } from '@/lib/theme';
 import { useNutritionHistory } from '@/hooks/useNutritionHistory';
+import { useWeeklyNutrition } from '@/hooks/useWeeklyNutrition';
 
 type Metric = 'kcal' | 'protein' | 'carbs' | 'fat';
 
@@ -52,6 +53,7 @@ function SummaryCard({ label, value, unit, color }: { label: string; value: numb
 export default function NutritionHistoryScreen() {
   const [activeMetric, setActiveMetric] = useState<Metric>('kcal');
   const { data, isLoading } = useNutritionHistory();
+  const { data: weekly } = useWeeklyNutrition();
   const backScale = useSharedValue(1);
   const backAnimStyle = useAnimatedStyle(() => ({ transform: [{ scale: backScale.value }] }));
   const { width: screenWidth } = useWindowDimensions();
@@ -118,6 +120,56 @@ export default function NutritionHistoryScreen() {
             <Text style={styles.title}>History</Text>
           </View>
         </View>
+
+        {/* Weekly Deficit Overview */}
+        {weekly && weekly.days.length > 0 && (
+          <View style={styles.deficitSection}>
+            <Text style={styles.deficitTitle}>WEEKLY DEFICIT</Text>
+            <BarChart
+              data={weekly.days.map((d) => ({
+                value: Math.round(d.kcal),
+                label: new Date(d.on_date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'narrow' }),
+                frontColor: theme.colors.ringCalories,
+                topLabelComponent: d.kcal > 0
+                  ? () => <Text style={styles.deficitBarLabel}>{Math.round(d.kcal)}</Text>
+                  : undefined,
+              }))}
+              barWidth={26}
+              spacing={14}
+              roundedTop
+              hideRules
+              hideAxesAndRules
+              xAxisLabelTextStyle={styles.xAxisLabel}
+              maxValue={Math.ceil(Math.max(...weekly.days.map((d) => Math.max(d.kcal, d.kcal_goal))) * 1.25)}
+              showReferenceLine1
+              referenceLine1Config={{ color: theme.colors.textTertiary, dashWidth: 4, dashGap: 4, thickness: 1 }}
+              referenceLine1Position={weekly.days[0]?.kcal_goal ?? 2200}
+              isAnimated
+              animationDuration={theme.animation.dataIntensive}
+              height={140}
+              width={screenWidth - theme.spacing.xxl * 2 - theme.spacing.lg * 2}
+            />
+            <View style={styles.deficitChipRow}>
+              <View style={styles.deficitChip}>
+                <Text style={styles.deficitChipLabel}>
+                  {weekly.weeklyDeficitKcal >= 0 ? 'Weekly Deficit' : 'Weekly Surplus'}
+                </Text>
+                <Text style={[
+                  styles.deficitChipValue,
+                  { color: weekly.weeklyDeficitKcal >= 0 ? theme.colors.success : theme.colors.error },
+                ]}>
+                  {Math.abs(Math.round(weekly.weeklyDeficitKcal))} kcal
+                </Text>
+              </View>
+              <View style={styles.deficitChip}>
+                <Text style={styles.deficitChipLabel}>Protein Hit Rate</Text>
+                <Text style={[styles.deficitChipValue, { color: theme.colors.accentPrimary }]}>
+                  {weekly.proteinHitDays}/{weekly.totalDays} days
+                </Text>
+              </View>
+            </View>
+          </View>
+        )}
 
         {/* Metric tabs */}
         <View style={styles.tabRow}>
@@ -292,6 +344,59 @@ const styles = StyleSheet.create({
     fontFamily: theme.fonts.display.fontFamily,
     color: theme.colors.textPrimary,
     lineHeight: 34,
+  },
+
+  deficitSection: {
+    marginHorizontal: theme.spacing.xxl,
+    backgroundColor: theme.colors.bgSurface1,
+    borderRadius: theme.radius.card,
+    borderWidth: 1,
+    borderColor: theme.colors.borderDefault,
+    padding: theme.spacing.lg,
+    paddingTop: theme.spacing.md,
+    marginBottom: theme.spacing.xxl,
+    alignItems: 'center',
+  },
+  deficitTitle: {
+    fontSize: 11,
+    fontFamily: theme.fonts.bodyBold.fontFamily,
+    color: theme.colors.textTertiary,
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+    alignSelf: 'flex-start',
+    marginBottom: theme.spacing.md,
+  },
+  deficitBarLabel: {
+    fontSize: 8,
+    fontFamily: theme.fonts.mono.fontFamily,
+    color: theme.colors.textTertiary,
+    marginBottom: 2,
+  },
+  deficitChipRow: {
+    flexDirection: 'row',
+    gap: theme.spacing.sm,
+    marginTop: theme.spacing.md,
+    alignSelf: 'stretch',
+  },
+  deficitChip: {
+    flex: 1,
+    backgroundColor: theme.colors.bgSurface2,
+    borderRadius: theme.radius.button,
+    borderWidth: 1,
+    borderColor: theme.colors.borderDefault,
+    padding: theme.spacing.sm,
+    gap: 2,
+  },
+  deficitChipLabel: {
+    fontSize: 10,
+    fontFamily: theme.fonts.body.fontFamily,
+    color: theme.colors.textTertiary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+  },
+  deficitChipValue: {
+    fontSize: 15,
+    fontFamily: theme.fonts.mono.fontFamily,
   },
 
   tabRow: {

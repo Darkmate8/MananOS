@@ -37,7 +37,7 @@ export function useDeleteHabit() {
           .update({ is_archived: true })
           .eq('id', habitId)
           .eq('user_id', userId);
-        if (error) throw error;
+        if (error) throw new Error(error.message);
       } else {
         const queue = JSON.parse(getSyncQueue(userId)) as unknown[];
         queue.push({ id: generateId(), action: 'ARCHIVE_HABIT', table: 'habits', payload: { id: habitId } });
